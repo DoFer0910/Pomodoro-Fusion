@@ -1,73 +1,33 @@
-# React + TypeScript + Vite
+# Pomodoro Fusion
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+在宅ワーク・学習のモチベーションを高める、収益可視化機能付きポモドーロタイマーアプリです。
 
-Currently, two official plugins are available:
+## 特徴
+*   **集中タイマー**: ポモドーロ・テクニックに基づいたタイマー（作業時間・休憩時間は設定可能）
+*   **収益可視化 (Billable Mode)**: 作業時間を時給換算し、完了時に獲得金額をアニメーション表示
+*   **実績カレンダー**: 作業記録をGitHubの草（Contributions）のようにヒートマップで可視化
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 起動方法
 
-## React Compiler
+### 前提条件
+*   Node.js (v20以上推奨) がインストールされていること
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 手順
 
-## Expanding the ESLint configuration
+1.  依存関係のインストール
+    ```bash
+    npm install
+    ```
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+2.  開発サーバーの起動
+    ```bash
+    npm run dev
+    ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+3.  ブラウザでアクセス
+    起動後に表示されるURL（通常は `http://localhost:5173`）にアクセスしてください。
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 使い方のヒント
+1.  右上の設定アイコン（⚙️）から、**時給 (Hourly Rate)** や **目標金額 (Monthly Goal)** を設定してください。
+2.  タイマー画面の **BILLABLE** スイッチをオンにして作業を開始します。
+3.  タイマーが完了すると、設定した時給に基づいて計算された金額がチャリーンと加算されます！

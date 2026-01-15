@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* Colors */
+  --color-bg-primary: #0a0a0a;
+  --color-bg-secondary: #161616;
+  --color-bg-elevated: #202020;
+  
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #a0a0a0;
+  --color-text-muted: #505050;
+
+  --color-accent: #ffd700; /* Gold */
+  --color-accent-glow: rgba(255, 215, 0, 0.4);
+  
+  --color-success: #4caf50;
+  --color-danger: #ff4d4d;
+  --color-info: #00bcd4;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 64px;
+
+  /* BorderRadius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-bg-elevated);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-muted);
+}
