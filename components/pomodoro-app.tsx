@@ -11,6 +11,8 @@ import { HistoryView } from "./history-view"
 import { SettingsView } from "./settings-view"
 import { MoneyOverlay } from "./money-overlay"
 import { usePomodoro } from "@/hooks/use-pomodoro"
+import { TimerProvider } from "./timer-context"
+import { TimerMeta } from "./timer-meta"
 
 type View = "timer" | "stats" | "history" | "settings"
 
@@ -31,14 +33,58 @@ export function PomodoroApp() {
   const [currentView, setCurrentView] = useState<View>("timer")
   const t = useTranslation(settings.language)
 
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-      </div>
-    )
-  }
+  // Use TimerProvider to persist state across view changes
+  return (
+    <TimerProvider settings={settings} sessions={sessions} onSessionComplete={addSession}>
+      <PomodoroAppContent
+        settings={settings}
+        sessions={sessions}
+        isBillable={isBillable}
+        setIsBillable={setIsBillable}
+        updateSettings={updateSettings}
+        addSession={addSession}
+        deleteSessions={deleteSessions}
+        mounted={mounted}
+        earnedAmount={earnedAmount}
+        showMoneyOverlay={showMoneyOverlay}
+        currentView={currentView}
+        setCurrentView={setCurrentView}
+        t={t}
+      />
+    </TimerProvider>
+  )
+}
 
+// Extract content to separate component to keep main clear and because we might want to access context here later
+function PomodoroAppContent({
+  settings,
+  sessions,
+  isBillable,
+  setIsBillable,
+  updateSettings,
+  addSession,
+  deleteSessions,
+  mounted,
+  earnedAmount,
+  showMoneyOverlay,
+  currentView,
+  setCurrentView,
+  t
+}: {
+  settings: any
+  sessions: any[]
+  isBillable: boolean
+  setIsBillable: (v: boolean) => void
+  updateSettings: (s: any) => void
+  addSession: (d: number, s: "completed" | "interrupted") => void
+  deleteSessions: (ids: string[]) => void
+  mounted: boolean
+  earnedAmount: number
+  showMoneyOverlay: boolean
+  currentView: View
+  setCurrentView: (v: View) => void
+  t: any
+}) {
   const navItems = [
     { id: "timer" as const, icon: Timer, label: t.timer },
     { id: "stats" as const, icon: BarChart3, label: t.stats },
@@ -48,6 +94,7 @@ export function PomodoroApp() {
 
   return (
     <div className={cn("min-h-screen bg-background", !isBillable && "focus-mode")}>
+      <TimerMeta t={t} />
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
@@ -80,7 +127,13 @@ export function PomodoroApp() {
       {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 pb-24">
         {currentView === "timer" && (
-          <TimerView settings={settings} isBillable={isBillable} onSessionComplete={addSession} t={t} />
+          <TimerView
+            settings={settings}
+            isBillable={isBillable}
+            onSessionComplete={addSession}
+            sessions={sessions}
+            t={t}
+          />
         )}
         {currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} />}
         {currentView === "history" && (

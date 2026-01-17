@@ -1,7 +1,7 @@
 import { type Session, type Settings, DEFAULT_SETTINGS } from "./types"
 
-const SESSIONS_KEY = "pomodoro_sessions"
-const SETTINGS_KEY = "pomodoro_settings"
+const SESSIONS_KEY = "pomodoro-sessions"
+const SETTINGS_KEY = "pomodoro-settings"
 
 export function getSessions(): Session[] {
   if (typeof window === "undefined") return []
@@ -18,12 +18,6 @@ export function addSession(session: Session): void {
   const sessions = getSessions()
   sessions.unshift(session)
   saveSessions(sessions)
-}
-
-export function deleteSessions(ids: string[]): void {
-  const sessions = getSessions()
-  const filtered = sessions.filter((s) => !ids.includes(s.id))
-  saveSessions(filtered)
 }
 
 export function getSettings(): Settings {

@@ -40,8 +40,30 @@ export const translations = {
     monthlyGoal: "月間目標",
     workDuration: "作業時間",
     breakDuration: "休憩時間",
+    longBreakDuration: "長休憩時間",
+    longBreakInterval: "長休憩間隔 (セット)",
     language: "言語",
     save: "保存",
+    allowOvertime: "オーバータイム（時間超過）を許可",
+    countInterruptedSessions: "中断セッションも収益に含める",
+    alarmSound: "アラーム音",
+    soundBell: "ベル",
+    soundDigital: "デジタル",
+    soundNone: "なし",
+    finishWork: "作業終了",
+    overtime: "超過",
+
+
+    // Data Management
+    dataManagement: "データ管理",
+    backupJson: "バックアップ (JSON)",
+    restoreJson: "復元 (JSON)",
+    exportCsv: "CSV出力",
+    backupDesc: "設定と履歴をJSONファイルとして保存します。",
+    restoreDesc: "バックアップファイルからデータを復元します。",
+    csvDesc: "履歴をCSV形式でダウンロードします。",
+    successImport: "データの復元に成功しました。",
+    failImport: "データの復元に失敗しました。",
 
     // Money overlay
     earned_prefix: "+¥",
@@ -88,8 +110,30 @@ export const translations = {
     monthlyGoal: "Monthly Goal",
     workDuration: "Work Duration",
     breakDuration: "Break Duration",
+    longBreakDuration: "Long Break Duration",
+    longBreakInterval: "Long Break Interval (Sets)",
     language: "Language",
     save: "Save",
+    allowOvertime: "Allow Overtime",
+    countInterruptedSessions: "Count Interrupted Sessions",
+    alarmSound: "Alarm Sound",
+    soundBell: "Bell",
+    soundDigital: "Digital",
+    soundNone: "None",
+    finishWork: "Finish Work",
+    overtime: "Overtime",
+
+
+    // Data Management
+    dataManagement: "Data Management",
+    backupJson: "Backup (JSON)",
+    restoreJson: "Restore (JSON)",
+    exportCsv: "Export CSV",
+    backupDesc: "Save settings and history as a JSON file.",
+    restoreDesc: "Restore data from a backup file.",
+    csvDesc: "Download history in CSV format.",
+    successImport: "Data restored successfully.",
+    failImport: "Failed to restore data.",
 
     // Money overlay
     earned_prefix: "+¥",

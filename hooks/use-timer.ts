@@ -11,37 +11,58 @@ interface UseTimerProps {
 export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: UseTimerProps) {
     const [isRunning, setIsRunning] = useState(false)
     const [timeLeft, setTimeLeft] = useState(settings.workDuration * 60)
+    const [isOvertime, setIsOvertime] = useState(false)
     const intervalRef = useRef<NodeJS.Timeout | null>(null)
     const startTimeRef = useRef<number>(0)
 
     const totalTime = isBreak ? settings.breakDuration * 60 : settings.workDuration * 60
-    const progress = ((totalTime - timeLeft) / totalTime) * 100
+    // Prevent progress form going < 0 or > 100. If overtime, timeLeft is negative, so max(0, ...) clamps it.
+    const progress = Math.min(100, Math.max(0, ((totalTime - timeLeft) / totalTime) * 100))
 
     // Update time when settings change or break mode changes
     useEffect(() => {
         if (!isRunning) {
             if (!isBreak) {
-                setTimeLeft(settings.workDuration * 60)
+                if (!isOvertime) setTimeLeft(settings.workDuration * 60)
             } else {
                 setTimeLeft(settings.breakDuration * 60)
             }
         }
-    }, [settings.workDuration, settings.breakDuration, isBreak, isRunning])
+    }, [settings.workDuration, settings.breakDuration, isBreak])
+
+    const playAlarm = useCallback(() => {
+        if (settings.alarmSound === "none") return
+        // Placeholder for sound playing
+    }, [settings.alarmSound])
 
     useEffect(() => {
-        if (isRunning && timeLeft > 0) {
+        if (isRunning) {
             intervalRef.current = setInterval(() => {
                 setTimeLeft((prev) => {
+                    // Transition to overtime
+                    if (prev === 1 && !isBreak && settings.allowOvertime) {
+                        playAlarm()
+                    }
+
                     if (prev <= 1) {
-                        setIsRunning(false)
-                        if (!isBreak) {
-                            const sessionDuration = settings.workDuration * 60
-                            onSessionComplete(sessionDuration, "completed")
-                            setIsBreak(true)
-                            return settings.breakDuration * 60
+                        if (!isBreak && settings.allowOvertime) {
+                            // Enter Overtime
+                            if (!isOvertime) setIsOvertime(true)
+                            return prev - 1
                         } else {
-                            setIsBreak(false)
-                            return settings.workDuration * 60
+                            // Normal completion
+                            setIsRunning(false)
+                            if (!isBreak) {
+                                const sessionDuration = settings.workDuration * 60
+                                onSessionComplete(sessionDuration, "completed")
+                                setIsBreak(true)
+                                playAlarm()
+                                return settings.breakDuration * 60
+                            } else {
+                                setIsBreak(false)
+                                playAlarm()
+                                return settings.workDuration * 60
+                            }
                         }
                     }
                     return prev - 1
@@ -54,54 +75,84 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
                 clearInterval(intervalRef.current)
             }
         }
-    }, [isRunning, isBreak, settings, onSessionComplete, timeLeft, setIsBreak])
+    }, [isRunning, isBreak, settings, onSessionComplete, playAlarm, isOvertime, setIsBreak])
 
-    const start = useCallback(() => {
-        // Fix for double-count bug: reset if starting from 0
-        if (timeLeft <= 0) {
-            if (!isBreak) {
-                setTimeLeft(settings.workDuration * 60)
-            } else {
+    const finishSession = useCallback(() => {
+        if (!isBreak) {
+            const baseDuration = settings.workDuration * 60
+            const overtimeDuration = isOvertime ? Math.abs(timeLeft) : 0
+            const totalDuration = baseDuration + overtimeDuration
+
+            setIsRunning(false)
+            onSessionComplete(totalDuration, "completed")
+            setIsBreak(true)
+            setIsOvertime(false)
+            setTimeLeft(settings.breakDuration * 60)
+        }
+    }, [isBreak, isOvertime, timeLeft, settings, onSessionComplete, setIsBreak])
+
+    const handleStart = useCallback(() => {
+        if (timeLeft <= 0 && !isOvertime) {
+            if (isBreak) {
                 setTimeLeft(settings.breakDuration * 60)
+            } else if (timeLeft > 0) {
+                setTimeLeft(settings.workDuration * 60)
             }
         }
+        if (!isRunning && timeLeft === 0 && !isOvertime) {
+            if (isBreak) setTimeLeft(settings.breakDuration * 60)
+            else setTimeLeft(settings.workDuration * 60)
+        }
+
         setIsRunning(true)
         startTimeRef.current = Date.now()
-    }, [timeLeft, isBreak, settings])
+    }, [timeLeft, isBreak, settings, isOvertime, isRunning])
 
-    const pause = useCallback(() => {
+    const handlePause = useCallback(() => {
         setIsRunning(false)
     }, [])
 
-    const reset = useCallback(() => {
+    const handleReset = useCallback(() => {
         setIsRunning(false)
         setIsBreak(false)
+        setIsOvertime(false)
         setTimeLeft(settings.workDuration * 60)
     }, [settings.workDuration, setIsBreak])
 
-    const skip = useCallback(() => {
+    const handleSkip = useCallback(() => {
         setIsRunning(false)
         if (!isBreak) {
-            const elapsedTime = totalTime - timeLeft
-            if (elapsedTime > 60) {
-                onSessionComplete(elapsedTime, "interrupted")
+            let duration = 0
+            if (isOvertime) {
+                duration = (settings.workDuration * 60) + Math.abs(timeLeft)
+            } else {
+                duration = (settings.workDuration * 60) - timeLeft
+            }
+
+            if (duration > 60) {
+                onSessionComplete(duration, "interrupted")
             }
             setIsBreak(true)
-            // Effect will handle time update
+            setIsOvertime(false)
+            setTimeLeft(settings.breakDuration * 60)
         } else {
             setIsBreak(false)
-            // Effect will handle time update
+            setIsOvertime(false)
+            setTimeLeft(settings.workDuration * 60)
         }
-    }, [isBreak, totalTime, timeLeft, onSessionComplete, setIsBreak])
+    }, [isBreak, timeLeft, settings, onSessionComplete, isOvertime, setIsBreak])
 
     return {
         timeLeft,
         progress,
         isRunning,
-        start,
-        pause,
-        reset,
-        skip,
+        isBreak,
+        isOvertime,
+        handleStart,
+        handlePause,
+        handleReset,
+        handleSkip,
+        finishSession,
         totalTime
     }
 }

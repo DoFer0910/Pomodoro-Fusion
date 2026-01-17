@@ -1,6 +1,12 @@
 import { useState, useEffect, useCallback } from "react"
 import { type Settings, DEFAULT_SETTINGS, type Session } from "@/lib/types"
-import { getSettings, saveSettings as persistSettings, getSessions, saveSessions as persistSessions, addSession as persistSession } from "@/lib/storage"
+import {
+    getSettings,
+    saveSettings as persistSettings,
+    getSessions,
+    saveSessions as persistSessions,
+    addSession as persistSession
+} from "@/lib/storage"
 
 export function usePomodoro() {
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -33,14 +39,21 @@ export function usePomodoro() {
             persistSession(session)
             setSessions(getSessions())
 
-            if (isBillable && status === "completed") {
-                const earned = Math.round((duration / 3600) * settings.hourlyRate)
-                setEarnedAmount(earned)
-                setShowMoneyOverlay(true)
-                setTimeout(() => setShowMoneyOverlay(false), 2000)
+            if (isBillable) {
+                if (status === "completed") {
+                    const earned = Math.round((duration / 3600) * settings.hourlyRate)
+                    setEarnedAmount(earned)
+                    setShowMoneyOverlay(true)
+                    setTimeout(() => setShowMoneyOverlay(false), 2000)
+                } else if (status === "interrupted" && settings.countInterruptedSessions) {
+                    const earned = Math.round((duration / 3600) * settings.hourlyRate)
+                    setEarnedAmount(earned)
+                    setShowMoneyOverlay(true)
+                    setTimeout(() => setShowMoneyOverlay(false), 2000)
+                }
             }
         },
-        [isBillable, settings.hourlyRate],
+        [isBillable, settings.hourlyRate, settings.countInterruptedSessions],
     )
 
     const deleteSessions = useCallback(
