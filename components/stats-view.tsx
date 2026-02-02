@@ -1,9 +1,8 @@
-"use client"
-
-import { useMemo } from "react"
-import { TrendingUp, Target, Clock } from "lucide-react"
+import { useState, useMemo } from "react"
+import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button" // Added Button import
 import { Progress } from "@/components/ui/progress"
 import { HeatmapCalendar } from "./heatmap-calendar"
 
@@ -15,11 +14,20 @@ interface StatsViewProps {
 }
 
 export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps) {
-  const monthlyStats = useMemo(() => {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+  const [selectedDate, setSelectedDate] = useState(new Date())
 
-    const monthlySessions = sessions.filter((s) => s.timestamp >= startOfMonth && s.status === "completed")
+  const monthlyStats = useMemo(() => {
+    const year = selectedDate.getFullYear()
+    const month = selectedDate.getMonth()
+
+    const startOfMonth = new Date(year, month, 1).getTime()
+    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).getTime()
+
+    const monthlySessions = sessions.filter((s) =>
+      s.timestamp >= startOfMonth &&
+      s.timestamp <= endOfMonth &&
+      (s.status === "completed" || (settings.countInterruptedSessions && s.status === "interrupted"))
+    )
 
     const billableSessions = monthlySessions.filter((s) => s.isBillable)
     const focusSessions = monthlySessions.filter((s) => !s.isBillable)
@@ -43,7 +51,17 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
       remainingHours,
       sessionCount: monthlySessions.length,
     }
-  }, [sessions, settings])
+  }, [sessions, settings, selectedDate])
+
+  const navigateMonth = (direction: -1 | 1) => {
+    const newDate = new Date(selectedDate)
+    newDate.setMonth(newDate.getMonth() + direction)
+    setSelectedDate(newDate)
+  }
+
+  const formatMonth = (date: Date) => {
+    return date.toLocaleString(settings.language === "ja" ? "ja-JP" : "en-US", { year: "numeric", month: "long" })
+  }
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -56,7 +74,20 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
 
   return (
     <div className="py-6 space-y-6">
-      <h2 className="text-xl font-semibold text-foreground">{t.thisMonth}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">{t.thisMonth || "Statistics"}</h2>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="icon" onClick={() => navigateMonth(-1)}>
+            <ChevronLeft className="w-4 h-4" />
+          </Button>
+          <span className="min-w-[140px] text-center font-medium">
+            {formatMonth(selectedDate)}
+          </span>
+          <Button variant="outline" size="icon" onClick={() => navigateMonth(1)} disabled={new Date() < new Date(selectedDate.getFullYear(), selectedDate.getMonth() + 1, 1)}>
+            <ChevronRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
 
       {/* Main Stats Cards */}
       <div className="grid gap-4">

@@ -137,7 +137,13 @@ function PomodoroAppContent({
         )}
         {currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} />}
         {currentView === "history" && (
-          <HistoryView sessions={sessions} settings={settings} onDeleteSessions={deleteSessions} t={t} />
+          <HistoryView
+            sessions={sessions}
+            settings={settings}
+            onDeleteSessions={deleteSessions}
+            t={t}
+            isBillable={isBillable}
+          />
         )}
         {currentView === "settings" && (
           <SettingsView settings={settings} onSettingsChange={updateSettings} t={t} />

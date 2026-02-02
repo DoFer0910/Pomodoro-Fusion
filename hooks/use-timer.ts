@@ -113,11 +113,23 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
     }, [])
 
     const handleReset = useCallback(() => {
+        if (isRunning && !isBreak) {
+            let duration = 0
+            if (isOvertime) {
+                duration = (settings.workDuration * 60) + Math.abs(timeLeft)
+            } else {
+                duration = (settings.workDuration * 60) - timeLeft
+            }
+
+            if (duration > 60) {
+                onSessionComplete(duration, "interrupted")
+            }
+        }
         setIsRunning(false)
         setIsBreak(false)
         setIsOvertime(false)
         setTimeLeft(settings.workDuration * 60)
-    }, [settings.workDuration, setIsBreak])
+    }, [isRunning, isBreak, isOvertime, timeLeft, settings, onSessionComplete, setIsBreak])
 
     const handleSkip = useCallback(() => {
         setIsRunning(false)
