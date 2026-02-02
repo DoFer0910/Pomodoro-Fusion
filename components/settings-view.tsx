@@ -15,9 +15,10 @@ interface SettingsViewProps {
   settings: Settings
   onSettingsChange: (settings: Settings) => void
   t: Record<string, string>
+  isBillable: boolean
 }
 
-export function SettingsView({ settings, onSettingsChange, t }: SettingsViewProps) {
+export function SettingsView({ settings, onSettingsChange, t, isBillable }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
 
   useEffect(() => {
@@ -69,38 +70,40 @@ export function SettingsView({ settings, onSettingsChange, t }: SettingsViewProp
     <div className="py-6 space-y-6">
       <h2 className="text-xl font-semibold text-foreground">{t.settings}</h2>
 
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-base font-medium text-foreground">{t.billableMode}</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="hourlyRate" className="text-muted-foreground">
-              {t.hourlyRate} (¥)
-            </Label>
-            <Input
-              id="hourlyRate"
-              type="number"
-              value={formData.hourlyRate}
-              onChange={(e) => setFormData({ ...formData, hourlyRate: Number(e.target.value) })}
-              className="bg-input border-border"
-            />
-          </div>
+      {isBillable && (
+        <Card className="bg-card border-border">
+          <CardHeader>
+            <CardTitle className="text-base font-medium text-foreground">{t.billableMode}</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="hourlyRate" className="text-muted-foreground">
+                {t.hourlyRate} (¥)
+              </Label>
+              <Input
+                id="hourlyRate"
+                type="number"
+                value={formData.hourlyRate}
+                onChange={(e) => setFormData({ ...formData, hourlyRate: Number(e.target.value) })}
+                className="bg-input border-border"
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="goalAmount" className="text-muted-foreground">
-              {t.monthlyGoal} (¥)
-            </Label>
-            <Input
-              id="goalAmount"
-              type="number"
-              value={formData.goalAmount}
-              onChange={(e) => setFormData({ ...formData, goalAmount: Number(e.target.value) })}
-              className="bg-input border-border"
-            />
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-2">
+              <Label htmlFor="goalAmount" className="text-muted-foreground">
+                {t.monthlyGoal} (¥)
+              </Label>
+              <Input
+                id="goalAmount"
+                type="number"
+                value={formData.goalAmount}
+                onChange={(e) => setFormData({ ...formData, goalAmount: Number(e.target.value) })}
+                className="bg-input border-border"
+              />
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="bg-card border-border">
         <CardHeader>

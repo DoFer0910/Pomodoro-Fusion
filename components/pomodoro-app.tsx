@@ -146,7 +146,12 @@ function PomodoroAppContent({
           />
         )}
         {currentView === "settings" && (
-          <SettingsView settings={settings} onSettingsChange={updateSettings} t={t} />
+          <SettingsView
+            settings={settings}
+            onSettingsChange={updateSettings}
+            t={t}
+            isBillable={isBillable}
+          />
         )}
       </main>
 
