@@ -8,7 +8,7 @@ const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Pomodoro Fusion - 集中力を収益に",
+  title: "Yield - 集中力を収益に",
   description: "ポモドーロテクニックで集中力を維持し、作業時間を収益として可視化",
   generator: "v0.app",
 }

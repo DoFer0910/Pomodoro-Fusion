@@ -16,6 +16,11 @@ interface StatsViewProps {
 export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
 
+  // Filter sessions based on current mode (billable vs focus)
+  const filteredSessions = useMemo(() => {
+    return sessions.filter(s => s.isBillable === isBillable)
+  }, [sessions, isBillable])
+
   const monthlyStats = useMemo(() => {
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
@@ -23,20 +28,16 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
     const startOfMonth = new Date(year, month, 1).getTime()
     const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).getTime()
 
-    const monthlySessions = sessions.filter((s) =>
+    const monthlySessions = filteredSessions.filter((s) =>
       s.timestamp >= startOfMonth &&
       s.timestamp <= endOfMonth &&
       (s.status === "completed" || (settings.countInterruptedSessions && s.status === "interrupted"))
     )
 
-    const billableSessions = monthlySessions.filter((s) => s.isBillable)
-    const focusSessions = monthlySessions.filter((s) => !s.isBillable)
+    const totalDuration = monthlySessions.reduce((acc, s) => acc + s.duration, 0)
 
-    const totalBillableTime = billableSessions.reduce((acc, s) => acc + s.duration, 0)
-    const totalFocusTime = focusSessions.reduce((acc, s) => acc + s.duration, 0)
-    const totalTime = monthlySessions.reduce((acc, s) => acc + s.duration, 0)
-
-    const totalEarnings = Math.round((totalBillableTime / 3600) * settings.hourlyRate)
+    // For earning mode
+    const totalEarnings = Math.round((totalDuration / 3600) * settings.hourlyRate)
     const progress = Math.min((totalEarnings / settings.goalAmount) * 100, 100)
 
     const remainingAmount = settings.goalAmount - totalEarnings
@@ -44,14 +45,12 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
 
     return {
       totalEarnings,
-      totalBillableTime,
-      totalFocusTime,
-      totalTime,
+      totalDuration,
       progress,
       remainingHours,
       sessionCount: monthlySessions.length,
     }
-  }, [sessions, settings, selectedDate])
+  }, [filteredSessions, settings, selectedDate])
 
   const navigateMonth = (direction: -1 | 1) => {
     const newDate = new Date(selectedDate)
@@ -102,7 +101,7 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
             <CardContent>
               <p className="text-3xl font-bold text-primary">¥{monthlyStats.totalEarnings.toLocaleString()}</p>
               <p className="text-sm text-muted-foreground mt-1">
-                {formatDuration(monthlyStats.totalBillableTime)} · {monthlyStats.sessionCount} {t.sessions}
+                {formatDuration(monthlyStats.totalDuration)} · {monthlyStats.sessionCount} {t.sessions}
               </p>
             </CardContent>
           </Card>
@@ -115,7 +114,7 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-3xl font-bold text-primary">{formatDuration(monthlyStats.totalTime)}</p>
+              <p className="text-3xl font-bold text-primary">{formatDuration(monthlyStats.totalDuration)}</p>
               <p className="text-sm text-muted-foreground mt-1">
                 {monthlyStats.sessionCount} {t.sessions}
               </p>
@@ -154,7 +153,7 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
           <CardTitle className="text-sm font-medium text-muted-foreground">Activity</CardTitle>
         </CardHeader>
         <CardContent>
-          <HeatmapCalendar sessions={sessions} isBillable={isBillable} />
+          <HeatmapCalendar sessions={filteredSessions} isBillable={isBillable} />
         </CardContent>
       </Card>
     </div>

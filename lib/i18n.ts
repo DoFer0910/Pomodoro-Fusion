@@ -3,9 +3,9 @@ export type Language = "ja" | "en"
 export const translations = {
   ja: {
     // Header
-    appName: "ポモドーロ・フュージョン",
-    billableMode: "稼ぐモード",
-    focusMode: "没頭モード",
+    appName: "イールド",
+    billableMode: "稼ぐ",
+    focusMode: "没頭",
 
     // Timer
     focus: "集中",
@@ -80,9 +80,9 @@ export const translations = {
   },
   en: {
     // Header
-    appName: "Pomodoro Fusion",
-    billableMode: "Billable Mode",
-    focusMode: "Focus Mode",
+    appName: "Yield",
+    billableMode: "Earn",
+    focusMode: "Focus",
 
     // Timer
     focus: "Focus",
