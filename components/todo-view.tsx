@@ -22,6 +22,7 @@ interface TodoViewProps {
 
 export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: TodoViewProps) {
     const [newTodo, setNewTodo] = useState("")
+    const [filter, setFilter] = useState<"active" | "completed" | "all">("active")
 
     const handleAdd = () => {
         if (!newTodo.trim()) return
@@ -35,10 +36,45 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
         }
     }
 
+    const filteredTodos = todos.filter((todo) => {
+        if (filter === "active") return !todo.completed
+        if (filter === "completed") return todo.completed
+        return true
+    })
+
     return (
         <div className="py-6 space-y-6">
             <div className="flex items-center justify-between">
                 <h2 className="text-xl font-semibold text-foreground">{t.todo}</h2>
+                <div className="flex gap-1 bg-muted p-1 rounded-lg">
+                    <button
+                        onClick={() => setFilter("active")}
+                        className={cn(
+                            "px-3 py-1 text-sm rounded-md transition-all",
+                            filter === "active" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        未完了
+                    </button>
+                    <button
+                        onClick={() => setFilter("completed")}
+                        className={cn(
+                            "px-3 py-1 text-sm rounded-md transition-all",
+                            filter === "completed" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        完了済み
+                    </button>
+                    <button
+                        onClick={() => setFilter("all")}
+                        className={cn(
+                            "px-3 py-1 text-sm rounded-md transition-all",
+                            filter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                        )}
+                    >
+                        すべて
+                    </button>
+                </div>
             </div>
 
             {error && (
@@ -74,14 +110,18 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
 
                 {/* Todo List */}
                 <div className="space-y-1">
-                    {todos.length === 0 ? (
+                    {filteredTodos.length === 0 ? (
                         <Card className="bg-card border-border">
                             <CardContent className="py-12 text-center">
-                                <p className="text-muted-foreground">{t.noTasks}</p>
+                                <p className="text-muted-foreground">
+                                    {filter === "active" && "未完了のタスクはありません"}
+                                    {filter === "completed" && "完了済みのタスクはありません"}
+                                    {filter === "all" && t.noTasks}
+                                </p>
                             </CardContent>
                         </Card>
                     ) : (
-                        todos.map((todo) => (
+                        filteredTodos.map((todo) => (
                             <div
                                 key={todo.id}
                                 className={cn(
