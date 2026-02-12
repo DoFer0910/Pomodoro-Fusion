@@ -1,8 +1,9 @@
 "use client"
 
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useState, useCallback } from "react"
 import type { Settings, Session } from "@/lib/types"
 import { useTimer } from "@/hooks/use-timer"
+import type { Todo } from "@/hooks/use-todo"
 
 interface TimerContextType {
     timeLeft: number
@@ -16,6 +17,8 @@ interface TimerContextType {
     handleSkip: () => void
     finishSession: () => void
     totalTime: number
+    selectedTodoId: string | undefined
+    setSelectedTodoId: (id: string | undefined) => void
 }
 
 const TimerContext = createContext<TimerContextType | null>(null)
@@ -23,12 +26,14 @@ const TimerContext = createContext<TimerContextType | null>(null)
 interface TimerProviderProps {
     settings: Settings
     sessions: Session[]
-    onSessionComplete: (duration: number, status: "completed" | "interrupted") => void
+    todos: Todo[]
+    onSessionComplete: (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string) => void
     children: React.ReactNode
 }
 
-export function TimerProvider({ settings, sessions, onSessionComplete, children }: TimerProviderProps) {
+export function TimerProvider({ settings, sessions, todos, onSessionComplete, children }: TimerProviderProps) {
     const [isBreak, setIsBreak] = useState(false)
+    const [selectedTodoId, setSelectedTodoId] = useState<string>()
 
     // Calculate if next/current break is a long break
     // Filter for completed sessions today
@@ -47,14 +52,25 @@ export function TimerProvider({ settings, sessions, onSessionComplete, children 
         breakDuration: isLongBreak ? settings.longBreakDuration : settings.breakDuration,
     }), [settings, isLongBreak])
 
+    const handleSessionComplete = useCallback((duration: number, status: "completed" | "interrupted") => {
+        const todo = todos.find(t => t.id === selectedTodoId)
+        onSessionComplete(duration, status, selectedTodoId, todo?.title)
+    }, [onSessionComplete, selectedTodoId, todos])
+
     const timer = useTimer({
         settings: effectiveSettings,
         isBreak,
         setIsBreak,
-        onSessionComplete,
+        onSessionComplete: handleSessionComplete,
     })
 
-    return <TimerContext.Provider value={timer}>{children}</TimerContext.Provider>
+    const value = {
+        ...timer,
+        selectedTodoId,
+        setSelectedTodoId
+    }
+
+    return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>
 }
 
 export function useTimerContext() {

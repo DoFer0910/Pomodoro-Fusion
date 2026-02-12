@@ -141,6 +141,11 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
                 )}
               >
                 <CardContent className="py-3 px-4">
+                  {session.todoTitle && (
+                    <div className="mb-2 text-xs font-semibold text-primary/80">
+                      {session.todoTitle}
+                    </div>
+                  )}
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleSelect(session.id)}

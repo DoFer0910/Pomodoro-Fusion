@@ -28,13 +28,15 @@ export function usePomodoro() {
     }, [])
 
     const addSession = useCallback(
-        (duration: number, status: "completed" | "interrupted") => {
+        (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string) => {
             const session: Session = {
                 id: crypto.randomUUID(),
                 timestamp: Date.now(),
                 duration,
                 status,
                 isBillable,
+                todoId,
+                todoTitle,
             }
             persistSession(session)
             setSessions(getSessions())

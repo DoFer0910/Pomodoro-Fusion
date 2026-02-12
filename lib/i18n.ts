@@ -70,6 +70,13 @@ export const translations = {
 
     // Navigation
     timer: "タイマー",
+    todo: "ToDo",
+
+    // ToDo
+    addTask: "タスクを追加...",
+    noTasks: "タスクがありません",
+    selectTask: "タスクを選択...",
+    noTaskSelected: "タスクなし",
   },
   en: {
     // Header
@@ -140,6 +147,13 @@ export const translations = {
 
     // Navigation
     timer: "Timer",
+    todo: "ToDo",
+
+    // ToDo
+    addTask: "Add task...",
+    noTasks: "No tasks",
+    selectTask: "Select a task...",
+    noTaskSelected: "No Task",
   },
 } as const
 

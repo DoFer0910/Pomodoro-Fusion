@@ -4,6 +4,8 @@ export interface Session {
   duration: number
   status: "completed" | "interrupted"
   isBillable: boolean
+  todoId?: string
+  todoTitle?: string
 }
 
 export interface Settings {

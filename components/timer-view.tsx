@@ -4,17 +4,26 @@ import { Play, Pause, RotateCcw, SkipForward, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Settings, Session } from "@/lib/types"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { useTimerContext } from "./timer-context"
+import type { Todo } from "@/hooks/use-todo"
 
 interface TimerViewProps {
   settings: Settings
   isBillable: boolean
   onSessionComplete: (duration: number, status: "completed" | "interrupted") => void
   sessions: Session[]
+  todos: Todo[]
   t: Record<string, string>
 }
 
-export function TimerView({ settings, isBillable, onSessionComplete, sessions, t }: TimerViewProps) {
+export function TimerView({ settings, isBillable, onSessionComplete, sessions, todos, t }: TimerViewProps) {
   const {
     timeLeft,
     progress,
@@ -26,6 +35,8 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
     handleReset,
     handleSkip,
     finishSession,
+    selectedTodoId,
+    setSelectedTodoId,
   } = useTimerContext()
 
   // Real-time Earning Calculation
@@ -70,7 +81,28 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       : "text-primary/30"
 
   return (
-    <div className="flex flex-col items-center justify-center py-8">
+    <div className="flex flex-col items-center justify-center py-6 space-y-6">
+      {/* Todo Selector */}
+      <div className="w-full max-w-xs z-10">
+        <Select
+          value={selectedTodoId || "none"}
+          onValueChange={(val) => setSelectedTodoId(val === "none" ? undefined : val)}
+          disabled={isRunning}
+        >
+          <SelectTrigger className="w-full bg-background/50 backdrop-blur-sm border-border">
+            <SelectValue placeholder={t.selectTask} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{t.noTaskSelected}</SelectItem>
+            {todos.filter(t => !t.completed).map((todo) => (
+              <SelectItem key={todo.id} value={todo.id}>
+                {todo.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Timer Ring */}
       <div className="relative w-80 h-80 mb-8">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 300 300">
@@ -170,7 +202,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       </div>
 
       {/* Session info */}
-      <p className="text-sm text-muted-foreground mt-8">{isRunning ? (isBreak ? t.break : t.focus) : t.start}</p>
+      <p className="text-sm text-muted-foreground mt-4">{isRunning ? (isBreak ? t.break : t.focus) : t.start}</p>
     </div>
   )
 }
