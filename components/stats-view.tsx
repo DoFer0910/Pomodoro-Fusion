@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button" // Added Button import
 import { Progress } from "@/components/ui/progress"
 import { HeatmapCalendar } from "./heatmap-calendar"
+import { ActivityCalendar } from "./activity-calendar"
 
 interface StatsViewProps {
   sessions: Session[]
@@ -150,10 +151,26 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
       {/* Heatmap Calendar */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-4">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Activity</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Activity Map</CardTitle>
         </CardHeader>
         <CardContent>
           <HeatmapCalendar sessions={filteredSessions} isBillable={isBillable} />
+        </CardContent>
+      </Card>
+
+      {/* Monthly Detail Calendar */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-sm font-medium text-muted-foreground">{t.thisMonth || "Monthly Details"}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityCalendar
+            sessions={filteredSessions}
+            isBillable={isBillable}
+            currentDate={selectedDate}
+            onMonthChange={setSelectedDate}
+            settings={settings}
+          />
         </CardContent>
       </Card>
     </div>
