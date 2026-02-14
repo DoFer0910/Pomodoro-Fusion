@@ -64,6 +64,7 @@ export function ActivityCalendar({
                 mode="single"
                 month={currentDate}
                 onMonthChange={onMonthChange}
+                hideNavigation
                 locale={locale}
                 showOutsideDays={false}
                 className={cn("w-full")}

@@ -44,11 +44,31 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
     const remainingAmount = settings.goalAmount - totalEarnings
     const remainingHours = remainingAmount > 0 ? Math.ceil(remainingAmount / settings.hourlyRate) : 0
 
+    // Calculate remaining days in the month
+    const now = new Date()
+    const isCurrentMonth = selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth()
+    const daysInMonth = new Date(year, month + 1, 0).getDate()
+
+    let remainingDays = 0
+    if (isCurrentMonth) {
+      remainingDays = Math.max(0, daysInMonth - now.getDate() + 1)
+    } else if (selectedDate > now) {
+      // Only if the selected month is fully in the future
+      if (new Date(year, month, 1) > now) {
+        remainingDays = daysInMonth
+      }
+    }
+
+    const dailyRemainingHours = remainingDays > 0 && remainingHours > 0
+      ? (remainingHours / remainingDays).toFixed(1)
+      : "0"
+
     return {
       totalEarnings,
       totalDuration,
       progress,
       remainingHours,
+      dailyRemainingHours,
       sessionCount: monthlySessions.length,
     }
   }, [filteredSessions, settings, selectedDate])
@@ -139,9 +159,14 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
               </div>
               <Progress value={monthlyStats.progress} className="h-2" />
               {monthlyStats.remainingHours > 0 && (
-                <p className="text-sm text-muted-foreground">
-                  {t.remaining}: {monthlyStats.remainingHours} {t.hours}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-sm text-muted-foreground">
+                    {t.remaining}: {monthlyStats.remainingHours} {t.hours}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t.dailyRemaining}: {monthlyStats.dailyRemainingHours} {t.hours}
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
