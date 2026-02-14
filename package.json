@@ -82,7 +82,7 @@
   },
   "build": {
     "appId": "com.pomodoro.fusion",
-    "productName": "Pomodoro Fusion",
+    "productName": "Yield",
     "files": [
       "out/**/*",
       "electron/**/*",
