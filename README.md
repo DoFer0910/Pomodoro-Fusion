@@ -29,7 +29,7 @@
 npm install
 npm run dev
 ```
-起動後、`http://localhost:5173` にアクセスしてください。
+起動後、`http://localhost:3000` にアクセスしてください。
 
 ### 開発用 (デスクトップ版 / Electron)
 Electronアプリとしての動作確認用です。
