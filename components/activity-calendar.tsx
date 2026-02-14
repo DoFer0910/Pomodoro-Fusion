@@ -69,7 +69,7 @@ export function ActivityCalendar({
                 className={cn("w-full")}
                 classNames={{
                     months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                    month: "space-y-4 w-full min-w-[600px]", // Ensure minimum width for the calendar
+                    month: "space-y-4 w-full min-w-[600px] md:min-w-0", // Ensure minimum width for the calendar, reset on md
                     caption: "flex justify-center pt-1 relative items-center hidden",
                     caption_label: "text-sm font-medium",
                     nav: "space-x-1 flex items-center",
@@ -83,7 +83,7 @@ export function ActivityCalendar({
                     weekdays: "flex",
                     weekday: "text-muted-foreground rounded-md w-full font-normal text-[0.8rem]",
                     week: "flex w-full mt-2 grid grid-cols-7 gap-1", // Use grid for better width control
-                    day: "h-24 w-full min-w-[80px] text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                    day: "h-24 w-full min-w-[80px] md:min-w-0 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
                     day_button: cn(
                         buttonVariants({ variant: "ghost" }),
                         "h-24 w-full p-0 font-normal aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground items-start justify-start flex flex-col border border-border/50"
