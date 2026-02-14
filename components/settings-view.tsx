@@ -18,10 +18,7 @@ interface SettingsViewProps {
   isBillable: boolean
 }
 
-import { useTheme } from "next-themes"
-
 export function SettingsView({ settings, onSettingsChange, t, isBillable }: SettingsViewProps) {
-  const { theme, setTheme } = useTheme()
   const [formData, setFormData] = useState<Settings>(settings)
 
   useEffect(() => {
@@ -204,28 +201,6 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
                 <SelectItem value="bell">{t.soundBell}</SelectItem>
                 <SelectItem value="digital">{t.soundDigital}</SelectItem>
                 <SelectItem value="none">{t.soundNone}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card className="bg-card border-border">
-        <CardHeader>
-          <CardTitle className="text-base font-medium text-foreground">{t.appearance || "外観"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <Label>{t.theme || "テーマ"}</Label>
-            <Select value={theme} onValueChange={setTheme}>
-              <SelectTrigger className="bg-input border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="light">ライト</SelectItem>
-                <SelectItem value="dark">ダーク</SelectItem>
-                <SelectItem value="liquid-glass">Liquid Glass</SelectItem>
-                <SelectItem value="system">システム</SelectItem>
               </SelectContent>
             </Select>
           </div>

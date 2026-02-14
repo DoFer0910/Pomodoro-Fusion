@@ -107,46 +107,6 @@
   --sidebar-ring: oklch(0.439 0 0);
 }
 
-.liquid-glass {
-  --background: oklch(0.15 0.05 240);
-  --foreground: oklch(0.95 0 0);
-  --card: oklch(0.25 0.05 240 / 0.25);
-  --card-foreground: oklch(0.95 0 0);
-  --popover: oklch(0.25 0.05 240 / 0.5);
-  --popover-foreground: oklch(0.95 0 0);
-  --primary: oklch(0.7 0.15 190);
-  --primary-foreground: oklch(0.1 0 0);
-  --secondary: oklch(0.3 0.05 240 / 0.3);
-  --secondary-foreground: oklch(0.95 0 0);
-  --muted: oklch(0.3 0.05 240 / 0.3);
-  --muted-foreground: oklch(0.7 0 0);
-  --accent: oklch(0.35 0.05 240 / 0.4);
-  --accent-foreground: oklch(0.95 0 0);
-  --destructive: oklch(0.6 0.2 20);
-  --destructive-foreground: oklch(0.95 0 0);
-  --border: oklch(0.8 0.05 240 / 0.2);
-  --input: oklch(0.3 0.05 240 / 0.3);
-  --ring: oklch(0.7 0.15 190);
-  --chart-1: oklch(0.6 0.2 230);
-  --chart-2: oklch(0.7 0.15 190);
-  --chart-3: oklch(0.6 0.2 280);
-  --chart-4: oklch(0.8 0.1 150);
-  --chart-5: oklch(0.7 0.2 320);
-  --sidebar: oklch(0.2 0.05 240 / 0.3);
-  --sidebar-foreground: oklch(0.95 0 0);
-  --sidebar-primary: oklch(0.7 0.15 190);
-  --sidebar-primary-foreground: oklch(0.1 0 0);
-  --sidebar-accent: oklch(0.35 0.05 240 / 0.4);
-  --sidebar-accent-foreground: oklch(0.95 0 0);
-  --sidebar-border: oklch(0.8 0.05 240 / 0.2);
-  --sidebar-ring: oklch(0.7 0.15 190);
-
-  /* Glass effect for specific elements */
-  /* Note: These variables might need to be applied explicitly in utility classes if standard classes don't pick them up as expected, 
-     but standard Tailwind bg-card/xx usually works with --card having an alpha channel.
-     However, backdrop-filter is key for the glass look. */
-}
-
 @theme inline {
   /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --font-sans: "Geist", "Geist Fallback";
@@ -197,35 +157,17 @@
   * {
     @apply border-border outline-ring/50;
   }
-
   body {
     @apply bg-background text-foreground;
-  }
-
-  :is(.liquid-glass) .bg-card,
-  :is(.liquid-glass) .bg-popover,
-  :is(.liquid-glass) .bg-secondary,
-  :is(.liquid-glass) .bg-muted {
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  :is(.liquid-glass) body {
-    background-image:
-      radial-gradient(circle at 10% 20%, oklch(0.25 0.1 260 / 0.2), transparent 40%),
-      radial-gradient(circle at 90% 80%, oklch(0.25 0.1 190 / 0.2), transparent 40%);
-    background-attachment: fixed;
   }
 }
 
 /* Timer ring animation */
 @keyframes pulse-ring {
-
   0%,
   100% {
     opacity: 0.3;
   }
-
   50% {
     opacity: 0.6;
   }
@@ -241,7 +183,6 @@
     transform: translateY(0) scale(1);
     opacity: 1;
   }
-
   100% {
     transform: translateY(-100px) scale(1.2);
     opacity: 0;

@@ -36,8 +36,6 @@ export const translations = {
 
     // Settings
     settings: "設定",
-    appearance: "外観",
-    theme: "テーマ",
     hourlyRate: "時給",
     monthlyGoal: "月間目標",
     workDuration: "作業時間",
@@ -115,8 +113,6 @@ export const translations = {
 
     // Settings
     settings: "Settings",
-    appearance: "Appearance",
-    theme: "Theme",
     hourlyRate: "Hourly Rate",
     monthlyGoal: "Monthly Goal",
     workDuration: "Work Duration",
