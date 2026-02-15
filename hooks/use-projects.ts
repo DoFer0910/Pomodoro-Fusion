@@ -8,8 +8,8 @@ export function useProjects() {
     const [projects, setProjects] = useState<Project[]>([])
     const [mounted, setMounted] = useState(false)
 
-    const refreshProjects = () => {
-        setProjects(getProjects())
+    const refreshProjects = async () => {
+        setProjects(await getProjects())
     }
 
     useEffect(() => {
@@ -17,7 +17,7 @@ export function useProjects() {
         refreshProjects()
     }, [])
 
-    const add = (projectData: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
+    const add = async (projectData: Omit<Project, "id" | "createdAt" | "updatedAt">) => {
         const now = Date.now()
         const newProject: Project = {
             ...projectData,
@@ -25,13 +25,13 @@ export function useProjects() {
             createdAt: now,
             updatedAt: now,
         }
-        addProject(newProject)
-        refreshProjects()
+        await addProject(newProject)
+        await refreshProjects()
         return newProject
     }
 
-    const update = (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">>) => {
-        const currentProjects = getProjects()
+    const update = async (id: string, data: Partial<Omit<Project, "id" | "createdAt" | "updatedAt">>) => {
+        const currentProjects = await getProjects()
         const projectBase = currentProjects.find(p => p.id === id)
         if (!projectBase) return
 
@@ -40,13 +40,13 @@ export function useProjects() {
             ...data,
             updatedAt: Date.now(),
         }
-        updateProject(updatedProject)
-        refreshProjects()
+        await updateProject(updatedProject)
+        await refreshProjects()
     }
 
-    const remove = (id: string) => {
-        deleteProject(id)
-        refreshProjects()
+    const remove = async (id: string) => {
+        await deleteProject(id)
+        await refreshProjects()
     }
 
     return {

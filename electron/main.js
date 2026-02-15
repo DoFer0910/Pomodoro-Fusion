@@ -1,7 +1,14 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const http = require('http');
 const handler = require('serve-handler');
+
+// Dynamic import for electron-store (ESM)
+let store;
+(async () => {
+    const { default: Store } = await import('electron-store');
+    store = new Store();
+})();
 
 let mainWindow;
 
@@ -59,4 +66,23 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', function () {
     if (process.platform !== 'darwin') app.quit();
+});
+
+// Storage IPC Handlers
+ipcMain.handle('storage:get', async (event, key) => {
+    return store.get(key);
+});
+
+ipcMain.handle('storage:set', async (event, key, value) => {
+    store.set(key, value);
+});
+
+ipcMain.handle('storage:delete', async (event, key) => {
+    store.delete(key);
+});
+
+ipcMain.handle('window:set-always-on-top', async (event, flag) => {
+    if (mainWindow) {
+        mainWindow.setAlwaysOnTop(flag, 'screen-saver');
+    }
 });

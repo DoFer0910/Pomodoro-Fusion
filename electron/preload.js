@@ -1,5 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
-    // Expose APIs here if needed in the future
+    read: (key) => ipcRenderer.invoke('storage:get', key),
+    write: (key, value) => ipcRenderer.invoke('storage:set', key, value),
+    remove: (key) => ipcRenderer.invoke('storage:delete', key),
+    setAlwaysOnTop: (flag) => ipcRenderer.invoke('window:set-always-on-top', flag),
 });

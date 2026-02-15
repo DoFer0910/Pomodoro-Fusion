@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Timer, BarChart3, History, SettingsIcon, CheckSquare } from "lucide-react"
+import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { type Settings, DEFAULT_SETTINGS, type Session } from "@/lib/types" // handled by hook
 import { useTranslation } from "@/lib/i18n"
@@ -35,7 +35,16 @@ export function PomodoroApp() {
   const { todos, addTodo, toggleTodo, deleteTodo, error } = useTodo()
 
   const [currentView, setCurrentView] = useState<View>("timer")
+  const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false)
   const t = useTranslation(settings.language)
+
+  const toggleAlwaysOnTop = async () => {
+    if (typeof window !== 'undefined' && (window as any).electron) {
+      const newState = !isAlwaysOnTop
+      await (window as any).electron.setAlwaysOnTop(newState)
+      setIsAlwaysOnTop(newState)
+    }
+  }
 
   // Use TimerProvider to persist state across view changes
   return (
@@ -58,6 +67,8 @@ export function PomodoroApp() {
         showMoneyOverlay={showMoneyOverlay}
         currentView={currentView}
         setCurrentView={setCurrentView}
+        isAlwaysOnTop={isAlwaysOnTop}
+        toggleAlwaysOnTop={toggleAlwaysOnTop}
         t={t}
       />
     </TimerProvider>
@@ -83,6 +94,8 @@ function PomodoroAppContent({
   showMoneyOverlay,
   currentView,
   setCurrentView,
+  isAlwaysOnTop,
+  toggleAlwaysOnTop,
   t
 }: {
   settings: any
@@ -102,6 +115,8 @@ function PomodoroAppContent({
   showMoneyOverlay: boolean
   currentView: View
   setCurrentView: (v: View) => void
+  isAlwaysOnTop: boolean
+  toggleAlwaysOnTop: () => void
   t: any
 }) {
   const navItems = [
@@ -140,8 +155,23 @@ function PomodoroAppContent({
             >
               {t.focusMode}
             </button>
-          </div>
-        </div>
+
+            {/* Always on Top Toggle (Electron Only) */}
+            {(typeof window !== 'undefined' && (window as any).electron) && (
+              <button
+                onClick={toggleAlwaysOnTop}
+                className={cn(
+                  "p-2 rounded-lg transition-all ml-2",
+                  isAlwaysOnTop
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:bg-muted"
+                )}
+                title={t.alwaysOnTop || "Always on Top"}
+              >
+                {isAlwaysOnTop ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
+              </button>
+            )}
+          </div>        </div>
       </header>
 
       {/* Main Content */}

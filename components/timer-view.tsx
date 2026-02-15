@@ -63,17 +63,18 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
   const strokeDasharray = 2 * Math.PI * 140
   const strokeDashoffset = strokeDasharray * (1 - progress / 100)
 
+
   // Visual state for Overtime
   const ringColor = isBreak
     ? "text-muted-foreground"
     : isOvertime
-      ? "text-amber-500"
+      ? "text-purple-500 animate-pulse"
       : "text-primary"
 
   const glowColor = isBreak
     ? "bg-muted-foreground/20"
     : isOvertime
-      ? "bg-amber-500/20"
+      ? "bg-purple-500/30"
       : "bg-primary/20"
 
   const ModeIcon = isBreak ? Check : isBillable ? DollarSign : Zap
@@ -157,7 +158,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           {/* Mode Icon & Label */}
           <div className={cn(
             "flex items-center gap-2 mb-2 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/10",
-            isBreak ? "text-muted-foreground" : isOvertime ? "text-amber-500" : "text-foreground"
+            isBreak ? "text-muted-foreground" : isOvertime ? "text-purple-500 bg-purple-500/10 border-purple-500/20" : "text-foreground"
           )}>
             <ModeIcon className="w-4 h-4" />
             <span className="text-xs font-semibold uppercase tracking-wider">
@@ -167,16 +168,21 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
 
           {/* Time */}
           <span className={cn(
-            "text-7xl font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm",
-            isOvertime ? "text-amber-500" : "text-foreground"
+            "text-7xl font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm transition-colors duration-300",
+            isOvertime ? "text-purple-500" : "text-foreground"
           )}>
             {formatTime(timeLeft)}
           </span>
 
           {/* Revenue Display (Only in Earn/Billable Mode) */}
-          <div className="h-8 flex items-center justify-center mt-2">
+          <div className="h-8 flex items-center justify-center mt-2 group">
             {isBillable && !isBreak && (
-              <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-500">
+              <div
+                className={cn(
+                  "flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-500 transition-opacity duration-300",
+                  settings.hideMoneyCount && "opacity-0 group-hover:opacity-100"
+                )}
+              >
                 <div className="flex items-center gap-1 text-emerald-500 font-medium">
                   <span className="text-xl">
                     ¥{currentEarnings.toLocaleString()}

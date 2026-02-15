@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 
 import { Todo } from "@/lib/types"
+import { getStorage } from "@/lib/storage/adapter"
 
 const TODOS_KEY = "pomodoro-todos"
 
@@ -13,19 +14,23 @@ export function useTodo() {
 
     useEffect(() => {
         setMounted(true)
-        const stored = localStorage.getItem(TODOS_KEY)
-        if (stored) {
-            try {
-                setTodos(JSON.parse(stored))
-            } catch (e) {
-                console.error("Failed to parse todos", e)
+        const load = async () => {
+            const storage = getStorage()
+            const stored = await storage.get<Todo[]>(TODOS_KEY)
+            if (stored) {
+                setTodos(stored)
             }
         }
+        load()
     }, [])
 
     useEffect(() => {
         if (mounted) {
-            localStorage.setItem(TODOS_KEY, JSON.stringify(todos))
+            const save = async () => {
+                const storage = getStorage()
+                await storage.set(TODOS_KEY, todos)
+            }
+            save()
         }
     }, [todos, mounted])
 

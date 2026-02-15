@@ -33,14 +33,14 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleBackup = () => {
-    const json = exportData()
+  const handleBackup = async () => {
+    const json = await exportData()
     const date = new Date().toISOString().slice(0, 10)
     downloadFile(json, `pomodoro-backup-${date}.json`, "application/json")
   }
 
-  const handleExportCSV = () => {
-    const csv = exportCSV()
+  const handleExportCSV = async () => {
+    const csv = await exportCSV()
     const date = new Date().toISOString().slice(0, 10)
     downloadFile(csv, `pomodoro-history-${date}.csv`, "text/csv")
   }
@@ -54,9 +54,9 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
     if (!file) return
 
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string
-      const result = importData(content)
+      const result = await importData(content)
       if (result.success) {
         toast.success(t.successImport)
         window.location.reload()
@@ -180,6 +180,18 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
               id="countInterrupted"
               checked={formData.countInterruptedSessions}
               onCheckedChange={(checked) => setFormData({ ...formData, countInterruptedSessions: checked })}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+
+          <div className="flex items-center justify-between space-x-2">
+            <Label htmlFor="hideMoneyCount" className="flex flex-col space-y-1">
+              <span>{t.hideMoneyCount || "金額表示を隠す（マウスオーバーで表示）"}</span>
+            </Label>
+            <Switch
+              id="hideMoneyCount"
+              checked={formData.hideMoneyCount}
+              onCheckedChange={(checked) => setFormData({ ...formData, hideMoneyCount: checked })}
               className="data-[state=checked]:bg-primary"
             />
           </div>

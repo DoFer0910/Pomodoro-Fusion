@@ -19,17 +19,20 @@ export function usePomodoro() {
 
     useEffect(() => {
         setMounted(true)
-        setSettings(getSettings())
-        setSessions(getSessions())
+        const load = async () => {
+            setSettings(await getSettings())
+            setSessions(await getSessions())
+        }
+        load()
     }, [])
 
-    const updateSettings = useCallback((newSettings: Settings) => {
+    const updateSettings = useCallback(async (newSettings: Settings) => {
         setSettings(newSettings)
-        persistSettings(newSettings)
+        await persistSettings(newSettings)
     }, [])
 
     const addSession = useCallback(
-        (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => {
+        async (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => {
             const session: Session = {
                 id: crypto.randomUUID(),
                 timestamp: Date.now(),
@@ -40,13 +43,32 @@ export function usePomodoro() {
                 todoTitle,
                 projectId,
             }
-            persistSession(session)
-            setSessions(getSessions())
+
+            // Optimistic update
+            setSessions(prev => [session, ...prev])
+
+            await persistSession(session)
+            // Re-fetch to ensure consistency (optional, but good for id/timestamp if generated server-side, here client-side so maybe redundant but safe)
+            // setSessions(await getSessions()) 
+            // Commenting out re-fetch to rely on optimistic update for immediate feedback, 
+            // strictly speaking we should probably re-fetch or just leave it. 
+            // If I re-fetch, it might cause a second render. 
+            // Let's keep the optimistic one and MAYBE re-fetch in background?
+            // For now, I'll trust persistSession works. If I want to be 100% sure:
+            // const stored = await getSessions(); setSessions(stored);
+            // But this causes the 'lag' again if we await it.
+            // So: Optimistic update -> Fire persist -> Done.
+            // But verify persistence later?
+            // I'll leave the optimistic update and REMOVE the await getSessions() call for now, 
+            // OR keep it but accept it might update state later.
+            // If I keep it, I have the race condition. 
+            // If I remove it, I might desync if persist fails (unlikely).
+            // I'll remove `setSessions(await getSessions())` and trust `setSessions(prev => ...)` is enough for now.
 
             if (isBillable) {
                 let rate = settings.defaultHourlyRate
                 if (projectId) {
-                    const projects = getProjects()
+                    const projects = await getProjects()
                     const project = projects.find((p) => p.id === projectId)
                     if (project) {
                         rate = project.hourlyRate
@@ -70,10 +92,10 @@ export function usePomodoro() {
     )
 
     const deleteSessions = useCallback(
-        (ids: string[]) => {
+        async (ids: string[]) => {
             const newSessions = sessions.filter((s) => !ids.includes(s.id))
             setSessions(newSessions)
-            persistSessions(newSessions)
+            await persistSessions(newSessions)
         },
         [sessions],
     )

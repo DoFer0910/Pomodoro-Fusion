@@ -46,13 +46,14 @@ export const translations = {
     language: "言語",
     save: "保存",
     allowOvertime: "オーバータイム（時間超過）を許可",
+    hideMoneyCount: "金額表示を隠す（マウスオーバーで表示）",
     countInterruptedSessions: "中断セッションも収益に含める",
     alarmSound: "アラーム音",
     soundBell: "ベル",
     soundDigital: "デジタル",
     soundNone: "なし",
     finishWork: "作業終了",
-    overtime: "超過",
+    overtime: "ボーナスタイム",
 
 
     // Data Management
@@ -145,13 +146,14 @@ export const translations = {
     language: "Language",
     save: "Save",
     allowOvertime: "Allow Overtime",
+    hideMoneyCount: "Hide Money Count (Show on Hover)",
     countInterruptedSessions: "Count Interrupted Sessions",
     alarmSound: "Alarm Sound",
     soundBell: "Bell",
     soundDigital: "Digital",
     soundNone: "None",
     finishWork: "Finish Work",
-    overtime: "Overtime",
+    overtime: "BONUS TIME",
 
 
     // Data Management

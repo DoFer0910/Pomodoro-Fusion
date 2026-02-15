@@ -40,6 +40,7 @@ export interface Settings {
   longBreakInterval: number
   countInterruptedSessions: boolean
   monthlyGoals: Record<string, number>
+  hideMoneyCount: boolean
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -54,4 +55,5 @@ export const DEFAULT_SETTINGS: Settings = {
   longBreakInterval: 4,
   countInterruptedSessions: true,
   monthlyGoals: {},
+  hideMoneyCount: false,
 }

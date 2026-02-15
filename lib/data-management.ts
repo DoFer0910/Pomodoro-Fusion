@@ -11,18 +11,18 @@ export interface AppData {
 
 const CURRENT_VERSION = 1
 
-export function exportData(): string {
+export async function exportData(): Promise<string> {
     const data: AppData = {
-        settings: getSettings(),
-        sessions: getSessions(),
-        projects: getProjects(),
+        settings: await getSettings(),
+        sessions: await getSessions(),
+        projects: await getProjects(),
         version: CURRENT_VERSION,
         exportedAt: Date.now(),
     }
     return JSON.stringify(data, null, 2)
 }
 
-export function importData(jsonString: string): { success: boolean; error?: string } {
+export async function importData(jsonString: string): Promise<{ success: boolean; error?: string }> {
     try {
         const data = JSON.parse(jsonString) as AppData
 
@@ -35,10 +35,10 @@ export function importData(jsonString: string): { success: boolean; error?: stri
         const newSettings = { ...DEFAULT_SETTINGS, ...data.settings }
 
         // Save data
-        saveSettings(newSettings)
-        saveSessions(data.sessions)
+        await saveSettings(newSettings)
+        await saveSessions(data.sessions)
         if (data.projects && Array.isArray(data.projects)) {
-            saveProjects(data.projects)
+            await saveProjects(data.projects)
         }
 
         return { success: true }
@@ -47,10 +47,10 @@ export function importData(jsonString: string): { success: boolean; error?: stri
     }
 }
 
-export function exportCSV(): string {
-    const sessions = getSessions()
-    const settings = getSettings()
-    const projects = getProjects()
+export async function exportCSV(): Promise<string> {
+    const sessions = await getSessions()
+    const settings = await getSettings()
+    const projects = await getProjects()
     const projectMap = new Map(projects.map(p => [p.id, p]))
 
     // CSV Header
