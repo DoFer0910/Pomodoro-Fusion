@@ -100,12 +100,13 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
         mainWindow.setBackgroundColor('#00000000');
     } else {
         mainWindow.setSize(1200, 800);
-        // Restore always on top state if provided, otherwise default to false
-        const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
-        mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
         mainWindow.center();
         // Reset to transparent so standard view can handle its own background via CSS
         mainWindow.setBackgroundColor('#00000000');
+
+        // Restore always on top state to ensure it's applied after geometry changes
+        const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
+        mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
     }
 });
 
