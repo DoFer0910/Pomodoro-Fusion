@@ -55,6 +55,7 @@ export function PomodoroApp() {
       setIsCompactMode(newState)
       if (newState) {
         setIsAlwaysOnTop(true)
+        setCurrentView("timer") // Force switch to Timer view
       }
 
       // Then notify main process
@@ -206,13 +207,7 @@ function PomodoroAppContent({
                   >
                     {isAlwaysOnTop ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
                   </button>
-                  <button
-                    onClick={toggleCompactMode}
-                    className="p-2 rounded-lg transition-all ml-2 text-muted-foreground hover:bg-muted"
-                    title={t.compactMode || "Compact Mode"}
-                  >
-                    <Minimize2 className="w-4 h-4" />
-                  </button>
+                  {/* Compact Mode toggle moved to TimerView */}
                 </>
               )}
             </div>        </div>
