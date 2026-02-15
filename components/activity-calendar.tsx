@@ -102,7 +102,7 @@ export function ActivityCalendar({
                         const dateKey = day.date.toDateString()
                         const duration = dailyStats.get(dateKey) || 0
                         const value = formatValue(duration)
-                        const isSelected = day.date.toDateString() === currentDate.toDateString()
+                        const isSelected = day.date.toDateString() === new Date().toDateString()
 
                         // props.children contains the day number usually
                         const dayNumber = day.date.getDate()
