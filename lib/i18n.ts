@@ -14,6 +14,7 @@ export const translations = {
     pause: "一時停止",
     reset: "リセット",
     skip: "スキップ",
+    finishSessionToSwitch: "モードを切り替えるにはセッションを終了してください",
 
     // Stats
     stats: "統計",
@@ -116,6 +117,7 @@ export const translations = {
     pause: "Pause",
     reset: "Reset",
     skip: "Skip",
+    finishSessionToSwitch: "Finish session to switch mode",
 
     // Stats
     stats: "Stats",

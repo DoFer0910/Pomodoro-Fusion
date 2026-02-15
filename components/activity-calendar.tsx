@@ -43,7 +43,7 @@ export function ActivityCalendar({
         if (duration === 0) return null
 
         if (isBillable) {
-            const earnings = Math.round((duration / 3600) * settings.hourlyRate)
+            const earnings = Math.round((duration / 3600) * settings.defaultHourlyRate)
             return `¥${earnings.toLocaleString()}`
         } else {
             const hours = Math.floor(duration / 3600)

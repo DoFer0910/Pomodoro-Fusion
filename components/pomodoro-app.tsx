@@ -13,7 +13,7 @@ import { TodoView } from "./todo-view"
 import { MoneyOverlay } from "./money-overlay"
 import { usePomodoro } from "@/hooks/use-pomodoro"
 import { useTodo } from "@/hooks/use-todo"
-import { TimerProvider } from "./timer-context"
+import { TimerProvider, useTimerContext } from "./timer-context"
 import { TimerMeta } from "./timer-meta"
 
 type View = "timer" | "stats" | "history" | "settings" | "todo"
@@ -162,6 +162,16 @@ function PomodoroAppContent({
     { id: "settings" as const, icon: SettingsIcon, label: t.settings },
   ]
 
+  const { isRunning, timeLeft, isBreak } = useTimerContext()
+
+  // Disable mode switching if:
+  // 1. Timer is running
+  // 2. Timer is paused but session is in progress (timeLeft < workDuration)
+  // Ensure we check against workDuration for the check
+  const workDurationSeconds = settings.workDuration * 60
+  // Check if session is active (running or paused with progress) AND we are not in break
+  const isSessionActive = !isBreak && (isRunning || timeLeft < workDurationSeconds)
+
   return (
     <div
       className={cn(
@@ -184,20 +194,26 @@ function PomodoroAppContent({
             {/* Mode Toggle */}
             <div className="flex items-center gap-2">
               <button
-                onClick={() => setIsBillable(true)}
+                onClick={() => !isSessionActive && setIsBillable(true)}
+                disabled={isSessionActive}
                 className={cn(
                   "px-3 py-1.5 text-sm rounded-lg transition-all",
                   isBillable ? "bg-gold/20 text-gold font-medium" : "text-muted-foreground hover:text-foreground",
+                  isSessionActive && "opacity-50 cursor-not-allowed hover:text-muted-foreground"
                 )}
+                title={isSessionActive ? t.finishSessionToSwitch || "Finish session to switch mode" : ""}
               >
                 {t.billableMode}
               </button>
               <button
-                onClick={() => setIsBillable(false)}
+                onClick={() => !isSessionActive && setIsBillable(false)}
+                disabled={isSessionActive}
                 className={cn(
                   "px-3 py-1.5 text-sm rounded-lg transition-all",
                   !isBillable ? "bg-green/20 text-green font-medium" : "text-muted-foreground hover:text-foreground",
+                  isSessionActive && "opacity-50 cursor-not-allowed hover:text-muted-foreground"
                 )}
+                title={isSessionActive ? t.finishSessionToSwitch || "Finish session to switch mode" : ""}
               >
                 {t.focusMode}
               </button>

@@ -2,23 +2,25 @@
 trigger: always_on
 ---
 
-## 開発ワークフロー：Web版先行実装ルール
+# Development Workflow: Web Version First Implementation Rule
 
-### 1. 基本方針
-新機能の実装および動作検証は、原則として**Webアプリ版（Next.js）を優先**して行います。デスクトップアプリ版（Electron）は、Web版で機能が確定した後に、その成果を反映・ビルドする手順を踏みます。
+## 1. Basic Policy
+Implementation and functional verification of new features shall, as a rule, be **prioritized for the Web app version (Next.js)**. The desktop app version (Electron) will follow the procedure of reflecting and building the results after the feature is finalized in the Web version.
 
-### 2. このルールを適用する理由
-- **検証の確実性**: Google Antigravity 環境下では、デスクトップアプリ固有の動作検証が困難、または不安定になる可能性があるため。
-- **切り分けの容易化**: 不具合発生時に、ロジックの問題（Web共通）か、環境・パッケージングの問題（Electron固有）かを明確にするため。
-- **開発スピード**: HMR（ホットリロード）やブラウザのデバッグツールがフルに活用できるWeb版で開発を完結させる方が効率的なため。
+## 2. Reasons for Applying This Rule
+- **Reliable Verification**: In the Google Antigravity environment, verifying behavior specific to the desktop app can be difficult or unstable.
+- **Simplified Troubleshooting**: To clearly identify whether issues stem from logic problems (common to the web) or environment/packaging problems (specific to Electron).
+- **Development Speed**: It is more efficient to complete development entirely in the web version, where HMR (Hot Module Replacement) and browser debugging tools can be fully utilized.
 
-### 3. 実装の手順 (Standard Procedure)
-1. **Web版での実装**: `npm run dev` 等のWeb環境で新機能を実装する。
-2. **Web版での検証**: ブラウザ上で意図した動作（ポモドーロタイマーの挙動、UIの反応など）が完璧であることを確認する。
-3. **デスクトップ版への反映**:
-   - Web版のコードをデスクトップ環境へ統合する。
-   - `npm run dev:electron` でデスクトップ特有の表示崩れ等がないか確認する。
-4. **ビルド確認**: 最終的に `npm run build:electron` でインストーラーが正常に生成されるか確認する。
+## 3. Implementation Procedure (Standard Procedure)
+1. **Implementation in the Web Version**: Implement new features in the web environment using commands like `npm run dev`.
+2. **Verify in Web Version**: Confirm perfect behavior in the browser (e.g., Pomodoro timer functionality, UI responsiveness).
+3. **Deploy to Desktop Version**:
+   - Integrate the web version code into the desktop environment.
+   - Run `npm run dev:electron` to check for desktop-specific display issues.
+4. **Build Verification**: Finally, verify that the installer generates correctly using `npm run build:electron`.
 
-### 4. 注意点
-- Node.js固有のAPI（ファイルシステム操作など）を使用する場合は、Web版でモック（ダミーの動作）を作成してエラーを防ぎ、Electron統合時に本実装に差し替えること。
+## 4. Important Notes
+- When using Node.js-specific APIs (e.g., file system operations), create mocks (dummy implementations) in the web version to prevent errors. Replace these with the actual implementation during Electron integration.
+*** Translated with www.DeepL.com/Translator (free version) ***
+
