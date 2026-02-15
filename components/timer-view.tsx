@@ -92,6 +92,20 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       "flex flex-col items-center justify-center relative transition-all duration-300",
       isCompactMode ? "space-y-4 app-region-drag select-none scale-90" : "py-6 space-y-8 scale-100"
     )}>
+      {/* Compact Mode Toggle (Standard Mode) */}
+      {!isCompactMode && (
+        <div className="absolute top-0 right-0 z-20">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleCompactMode}
+            className="text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            title={t.compactMode || "Compact Mode"}
+          >
+            <Minimize2 className="w-5 h-5" />
+          </Button>
+        </div>
+      )}
 
       {/* Background Ambient Glow (Standard Mode Only) */}
       {!isCompactMode && (
@@ -148,22 +162,17 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
 
       {/* Timer Ring Container */}
       <div className={cn("relative transition-all duration-300 ease-in-out", isCompactMode ? "w-48 h-48" : "w-80 h-80")}>
-        {/* Compact Mode Toggle Button */}
-        {(isCompactMode || (typeof window !== 'undefined' && (window as any).electron)) && (
-          <div className={cn("absolute z-20 app-region-no-drag", isCompactMode ? "-top-4 -right-4" : "top-0 right-0")}>
+        {/* Compact Mode Toggle Button (Only visible in Compact Mode for restoring) */}
+        {isCompactMode && (
+          <div className="absolute -top-4 -right-4 z-20 app-region-no-drag">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleCompactMode}
-              className={cn(
-                "rounded-full transition-all w-8 h-8",
-                isCompactMode
-                  ? "bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground"
-                  : "bg-background/10 hover:bg-background/30 text-muted-foreground hover:text-foreground"
-              )}
-              title={isCompactMode ? t.expand : t.compactMode || "Compact Mode"}
+              className="rounded-full bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-all w-8 h-8"
+              title={t.expand}
             >
-              {isCompactMode ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+              <Maximize2 className="w-4 h-4" />
             </Button>
           </div>
         )}
