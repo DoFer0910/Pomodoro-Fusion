@@ -90,7 +90,7 @@ ipcMain.handle('window:set-always-on-top', async (event, flag) => {
 });
 
 // Window Management IPC Handlers
-ipcMain.handle('window:set-compact-mode', async (event, isCompact) => {
+ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlwaysOnTop) => {
     if (!mainWindow) return;
 
     if (isCompact) {
@@ -100,7 +100,9 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact) => {
         mainWindow.setBackgroundColor('#00000000');
     } else {
         mainWindow.setSize(1200, 800);
-        mainWindow.setAlwaysOnTop(false);
+        // Restore always on top state if provided, otherwise default to false
+        const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
+        mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
         mainWindow.center();
         // Reset to transparent so standard view can handle its own background via CSS
         mainWindow.setBackgroundColor('#00000000');

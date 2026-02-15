@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef } from "react"
 import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff, Minimize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { type Settings, DEFAULT_SETTINGS, type Session } from "@/lib/types" // handled by hook
@@ -47,19 +47,29 @@ export function PomodoroApp() {
     }
   }
 
+  const prevAlwaysOnTopRef = useRef(false)
+
   const toggleCompactMode = async () => {
     if (typeof window !== 'undefined' && (window as any).electron) {
       const newState = !isCompactMode
 
       // Update UI state immediately for responsiveness
       setIsCompactMode(newState)
+
       if (newState) {
+        // Entering compact mode
+        prevAlwaysOnTopRef.current = isAlwaysOnTop // Store current state
         setIsAlwaysOnTop(true)
         setCurrentView("timer") // Force switch to timer view
+        // Notify main process to enter compact mode
+        await (window as any).electron.setCompactMode(true)
+      } else {
+        // Exiting compact mode
+        const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
+        setIsAlwaysOnTop(shouldRestoreAlwaysOnTop)
+        // Notify main process to exit compact mode and restore always on top
+        await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
       }
-
-      // Then notify main process
-      await (window as any).electron.setCompactMode(newState)
     }
   }
 
@@ -155,8 +165,8 @@ function PomodoroAppContent({
   return (
     <div
       className={cn(
-        "min-h-screen transition-colors duration-500 ease-in-out flex flex-col",
-        isCompactMode ? "bg-transparent" : "bg-background"
+        "transition-colors duration-500 ease-in-out flex flex-col",
+        isCompactMode ? "h-screen overflow-hidden bg-transparent" : "min-h-screen bg-background"
       )}
       data-mode={isBillable ? "earn" : "immerse"}
     >
@@ -217,7 +227,7 @@ function PomodoroAppContent({
       <main className={cn(
         "flex-1",
         !isCompactMode && "max-w-2xl mx-auto px-4 pb-24 w-full",
-        isCompactMode && "flex items-center justify-center p-4"
+        isCompactMode && "flex items-center justify-center overflow-hidden" // Removed padding and added overflow handling
       )}>
         {currentView === "timer" && (
           <TimerView
