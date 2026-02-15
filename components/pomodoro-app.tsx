@@ -113,12 +113,12 @@ function PomodoroAppContent({
   ]
 
   return (
-    <div className={cn("min-h-screen bg-background", !isBillable && "focus-mode")}>
+    <div className="min-h-screen bg-background" data-mode={isBillable ? "earn" : "immerse"}>
       <TimerMeta t={t} />
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-lg font-semibold text-foreground">{t.appName}</h1>
+          <h1 className="text-lg font-black text-foreground">{t.appName}</h1>
 
           {/* Mode Toggle */}
           <div className="flex items-center gap-2">
@@ -156,7 +156,7 @@ function PomodoroAppContent({
             t={t}
           />
         )}
-        {currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} />}
+        {currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} onSettingsChange={updateSettings} />}
         {currentView === "history" && (
           <HistoryView
             sessions={sessions}

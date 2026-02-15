@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react"
-import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight } from "lucide-react"
+import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button" // Added Button import
+import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { HeatmapCalendar } from "./heatmap-calendar"
 import { ActivityCalendar } from "./activity-calendar"
@@ -12,10 +13,13 @@ interface StatsViewProps {
   settings: Settings
   isBillable: boolean
   t: Record<string, string>
+  onSettingsChange: (settings: Settings) => void
 }
 
-export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps) {
+export function StatsView({ sessions, settings, isBillable, t, onSettingsChange }: StatsViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
+  const [isEditingGoal, setIsEditingGoal] = useState(false)
+  const [tempGoal, setTempGoal] = useState("")
 
   // Filter sessions based on current mode (billable vs focus)
   const filteredSessions = useMemo(() => {
@@ -38,10 +42,13 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
     const totalDuration = monthlySessions.reduce((acc, s) => acc + s.duration, 0)
 
     // For earning mode
-    const totalEarnings = Math.round((totalDuration / 3600) * settings.hourlyRate)
-    const progress = Math.min((totalEarnings / settings.goalAmount) * 100, 100)
+    const currentMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`
+    const monthlyGoal = settings.monthlyGoals?.[currentMonthKey] ?? settings.goalAmount
 
-    const remainingAmount = settings.goalAmount - totalEarnings
+    const totalEarnings = Math.round((totalDuration / 3600) * settings.hourlyRate)
+    const progress = Math.min((totalEarnings / monthlyGoal) * 100, 100)
+
+    const remainingAmount = monthlyGoal - totalEarnings
     const remainingHours = remainingAmount > 0 ? Math.ceil(remainingAmount / settings.hourlyRate) : 0
 
     // Calculate remaining days in the month
@@ -70,8 +77,32 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
       remainingHours,
       dailyRemainingHours,
       sessionCount: monthlySessions.length,
+      monthlyGoal,
     }
   }, [filteredSessions, settings, selectedDate])
+
+  const handleSaveGoal = () => {
+    const newGoal = parseInt(tempGoal, 10)
+    if (!isNaN(newGoal) && newGoal > 0) {
+      const year = selectedDate.getFullYear()
+      const month = selectedDate.getMonth()
+      const currentMonthKey = `${year}-${String(month + 1).padStart(2, "0")}`
+
+      onSettingsChange({
+        ...settings,
+        monthlyGoals: {
+          ...settings.monthlyGoals,
+          [currentMonthKey]: newGoal
+        }
+      })
+    }
+    setIsEditingGoal(false)
+  }
+
+  const startEditingGoal = () => {
+    setTempGoal(monthlyStats.monthlyGoal.toString())
+    setIsEditingGoal(true)
+  }
 
   const navigateMonth = (direction: -1 | 1) => {
     const newDate = new Date(selectedDate)
@@ -147,10 +178,40 @@ export function StatsView({ sessions, settings, isBillable, t }: StatsViewProps)
         {isBillable && (
           <Card className="bg-card border-border">
             <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                {t.goal}: ¥{settings.goalAmount.toLocaleString()}
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Target className="w-4 h-4" />
+                  {t.goal || "Goal"}
+                </CardTitle>
+                {isEditingGoal ? (
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={tempGoal}
+                      onChange={(e) => setTempGoal(e.target.value)}
+                      className="h-8 w-24"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") handleSaveGoal()
+                        if (e.key === "Escape") setIsEditingGoal(false)
+                      }}
+                    />
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleSaveGoal}>
+                      <Check className="w-4 h-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setIsEditingGoal(false)}>
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">¥{monthlyStats.monthlyGoal.toLocaleString()}</span>
+                    <Button size="icon" variant="ghost" className="h-8 w-8 opacity-50 hover:opacity-100" onClick={startEditingGoal}>
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                  </div>
+                )}
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center justify-between text-sm">

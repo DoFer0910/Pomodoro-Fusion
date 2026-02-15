@@ -89,18 +89,7 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="goalAmount" className="text-muted-foreground">
-                {t.monthlyGoal} (¥)
-              </Label>
-              <Input
-                id="goalAmount"
-                type="number"
-                value={formData.goalAmount}
-                onChange={(e) => setFormData({ ...formData, goalAmount: Number(e.target.value) })}
-                className="bg-input border-border"
-              />
-            </div>
+
           </CardContent>
         </Card>
       )}
