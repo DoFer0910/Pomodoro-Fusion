@@ -106,7 +106,14 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
 
         // Restore always on top state to ensure it's applied after geometry changes
         const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
-        mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
+
+        // Windows quirk: setAlwaysOnTop might fail if called immediately after geometry changes
+        // Use a small timeout to ensure it applies correctly
+        setTimeout(() => {
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
+            }
+        }, 100);
     }
 });
 
