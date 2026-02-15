@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Pause, RotateCcw, SkipForward, Check } from "lucide-react"
+import { Play, Pause, RotateCcw, SkipForward, Check, DollarSign, Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Settings, Session } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -40,21 +40,8 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
   } = useTimerContext()
 
   // Real-time Earning Calculation
-  // Elapsed time = (Original Work Duration in Seconds) - (Time Left in Seconds)
-  // Note: timeLeft counts DOWN. So (Total - Current) = Elapsed.
-  // Exception: Overtime. In overtime, timeLeft is negative.
-  // Logic:
-  // If not Overtime: Elapsed = (workDuration * 60) - timeLeft
-  // If Overtime: Elapsed = (workDuration * 60) + Math.abs(timeLeft)
-  // Simplified: (workDuration * 60) - timeLeft (because timeLeft is negative, subtracting it adds the value! ...Wait.
-  // Standard: 25:00 (1500s). timeLeft=1500. Elapsed=0.
-  // Standard: 24:59 (1499s). Elapsed=1.
-  // Overtime: -0:01 (-1s). Elapsed = 1500 - (-1) = 1501.
-  // YES. The formula (DURATION - TIMELEFT) works universally if timeLeft goes negative.
-
   const workDurationSeconds = settings.workDuration * 60
   const elapsedSeconds = isBreak ? 0 : Math.max(0, workDurationSeconds - timeLeft)
-
   const currentEarnings = Math.floor((elapsedSeconds / 3600) * settings.hourlyRate)
 
   const formatTime = (seconds: number) => {
@@ -75,13 +62,23 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       : "text-primary"
 
   const glowColor = isBreak
-    ? "text-muted-foreground/30"
+    ? "bg-muted-foreground/20"
     : isOvertime
-      ? "text-amber-500/30"
-      : "text-primary/30"
+      ? "bg-amber-500/20"
+      : "bg-primary/20"
+
+  const ModeIcon = isBreak ? Check : isBillable ? DollarSign : Zap
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 space-y-6">
+    <div className="flex flex-col items-center justify-center py-6 space-y-8 relative">
+      {/* Background Ambient Glow */}
+      <div
+        className={cn(
+          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-3xl -z-10 transition-colors duration-1000 opacity-50",
+          glowColor
+        )}
+      />
+
       {/* Todo Selector */}
       <div className="w-full max-w-xs z-10">
         <Select
@@ -89,7 +86,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           onValueChange={(val) => setSelectedTodoId(val === "none" ? undefined : val)}
           disabled={isRunning}
         >
-          <SelectTrigger className="w-full bg-background/50 backdrop-blur-sm border-border">
+          <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm">
             <SelectValue placeholder={t.selectTask} />
           </SelectTrigger>
           <SelectContent>
@@ -103,11 +100,12 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
         </Select>
       </div>
 
-      {/* Timer Ring */}
-      <div className="relative w-80 h-80 mb-8">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 300 300">
+      {/* Timer Ring Container */}
+      <div className="relative w-80 h-80">
+        {/* SVG Ring */}
+        <svg className="w-full h-full -rotate-90 drop-shadow-2xl" viewBox="0 0 300 300">
           {/* Background ring */}
-          <circle cx="150" cy="150" r="140" fill="none" stroke="currentColor" strokeWidth="8" className="text-muted" />
+          <circle cx="150" cy="150" r="140" fill="none" stroke="currentColor" strokeWidth="4" className="text-muted/20" />
           {/* Progress ring */}
           <circle
             cx="150"
@@ -123,53 +121,61 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
               strokeDashoffset,
             }}
           />
-          {/* Glow effect when running */}
-          {isRunning && (
-            <circle
-              cx="150"
-              cy="150"
-              r="140"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="16"
-              strokeLinecap="round"
-              className={cn("animate-pulse-ring blur-sm", glowColor)}
-              style={{
-                strokeDasharray,
-                strokeDashoffset,
-              }}
-            />
-          )}
         </svg>
 
-        {/* Timer Display */}
+        {/* Timer Display Information */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span
-            className={cn(
-              "text-sm font-medium mb-2 uppercase tracking-wider",
-              isBreak ? "text-muted-foreground" : isOvertime ? "text-amber-500 font-bold" : "text-primary",
-            )}
-          >
-            {isBreak ? t.break : isOvertime ? t.overtime : t.focus}
-          </span>
+          {/* Mode Icon & Label */}
+          <div className={cn(
+            "flex items-center gap-2 mb-2 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/10",
+            isBreak ? "text-muted-foreground" : isOvertime ? "text-amber-500" : "text-foreground"
+          )}>
+            <ModeIcon className="w-4 h-4" />
+            <span className="text-xs font-semibold uppercase tracking-wider">
+              {isBreak ? t.break : isOvertime ? t.overtime : isBillable ? t.billableMode : t.focusMode}
+            </span>
+          </div>
+
+          {/* Time */}
           <span className={cn(
-            "text-6xl font-mono font-bold tabular-nums",
+            "text-7xl font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm",
             isOvertime ? "text-amber-500" : "text-foreground"
           )}>
             {formatTime(timeLeft)}
           </span>
-          {isBillable && !isBreak && (
-            <span className="text-sm text-muted-foreground mt-2">
-              ¥{currentEarnings.toLocaleString()}
-            </span>
-          )}
+
+          {/* Revenue Display (Only in Earn/Billable Mode) */}
+          <div className="h-8 flex items-center justify-center mt-2">
+            {isBillable && !isBreak && (
+              <div className="flex items-center gap-1 text-emerald-500 font-medium animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <span className="text-xl">
+                  ¥{currentEarnings.toLocaleString()}
+                </span>
+              </div>
+            )}
+            {!isBillable && !isBreak && (
+              <span className="text-sm text-muted-foreground/50 italic">
+                {t.focusMode}
+              </span>
+            )}
+            {isBreak && (
+              <span className="text-sm text-muted-foreground/50 italic">
+                {t.break}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" onClick={handleReset} className="w-12 h-12 rounded-full bg-transparent">
-          <RotateCcw className="w-5 h-5" />
+      <div className="flex items-center gap-6 z-10">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleReset}
+          className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all duration-300"
+        >
+          <RotateCcw className="w-6 h-6 text-muted-foreground" />
         </Button>
 
         {isOvertime ? (
@@ -177,32 +183,35 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
             size="lg"
             onClick={finishSession}
             className={cn(
-              "w-20 h-20 rounded-full text-lg font-medium",
+              "w-24 h-24 rounded-full shadow-lg shadow-amber-500/20",
               "bg-amber-500 hover:bg-amber-600 text-white animate-pulse"
             )}
           >
-            <Check className="w-8 h-8" />
+            <Check className="w-10 h-10" />
           </Button>
         ) : (
           <Button
             size="lg"
             onClick={isRunning ? handlePause : handleStart}
             className={cn(
-              "w-20 h-20 rounded-full text-lg font-medium",
+              "w-24 h-24 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
               "bg-primary text-primary-foreground hover:bg-primary/90",
+              isRunning && "shadow-primary/25"
             )}
           >
-            {isRunning ? <Pause className="w-8 h-8" /> : <Play className="w-8 h-8 ml-1" />}
+            {isRunning ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-1" />}
           </Button>
         )}
 
-        <Button variant="outline" size="icon" onClick={handleSkip} className="w-12 h-12 rounded-full bg-transparent">
-          <SkipForward className="w-5 h-5" />
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={handleSkip}
+          className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all duration-300"
+        >
+          <SkipForward className="w-6 h-6 text-muted-foreground" />
         </Button>
       </div>
-
-      {/* Session info */}
-      <p className="text-sm text-muted-foreground mt-4">{isRunning ? (isBreak ? t.break : t.focus) : t.start}</p>
     </div>
   )
 }
