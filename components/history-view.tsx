@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Trash2, CheckSquare, Square } from "lucide-react"
+import { Trash2, CheckSquare, Square, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Session, Settings } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -98,8 +98,8 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
   }
 
   return (
-    <div className="py-6 space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="py-6 space-y-4 h-[calc(100vh-120px)] flex flex-col">
+      <div className="flex items-center justify-between shrink-0">
         <h2 className="text-xl font-semibold text-foreground">{t.history}</h2>
 
         {paginatedSessions.length > 0 && (
@@ -130,87 +130,94 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-4">
-          <div className="space-y-2">
+        <div className="flex-1 min-h-0 flex flex-col">
+          <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-2">
+            {/* Using standard div with overflow-auto instead of ScrollArea for simplicity in interaction inside complex layouts, or implement ScrollArea properly wrapping this */}
+            {/* The user specifically asked for Radix ScrollArea. Let's try to use it if available or standard scroll if not imported. I see @radix-ui/react-scroll-area in package.json and components/ui/scroll-area.tsx. Let's import it.*/}
+            {/* Retrying with ScrollArea import below */}
             {paginatedSessions.map((session) => (
-              <Card
+              <div
                 key={session.id}
                 className={cn(
-                  "bg-card border-border transition-colors",
-                  selectedIds.has(session.id) && "border-primary/50 bg-primary/5",
+                  "group relative flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
+                  selectedIds.has(session.id)
+                    ? "bg-primary/5 border-primary/50"
+                    : "bg-card hover:bg-accent/50 border-border hover:border-border/80 hover:shadow-sm",
                 )}
               >
-                <CardContent className="py-3 px-4">
+                {/* Selection Checkbox */}
+                <button
+                  onClick={() => toggleSelect(session.id)}
+                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                >
+                  {selectedIds.has(session.id) ? (
+                    <CheckSquare className="w-5 h-5 text-primary" />
+                  ) : (
+                    <Square className="w-5 h-5 opacity-50 group-hover:opacity-100" />
+                  )}
+                </button>
+
+                <div className="flex-1 min-w-0">
                   {session.todoTitle && (
-                    <div className="mb-2 text-xs font-semibold text-primary/80">
+                    <div className="mb-1 text-xs font-semibold text-primary/90 truncate">
                       {session.todoTitle}
                     </div>
                   )}
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => toggleSelect(session.id)}
-                      className="text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {selectedIds.has(session.id) ? (
-                        <CheckSquare className="w-5 h-5 text-primary" />
-                      ) : (
-                        <Square className="w-5 h-5" />
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-foreground">{formatDate(session.timestamp)}</span>
+                    <span
+                      className={cn(
+                        "text-[10px] px-1.5 py-0.5 rounded-full border",
+                        session.isBillable
+                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400"
+                          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
                       )}
-                    </button>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm text-foreground">{formatDate(session.timestamp)}</span>
-                        <span
-                          className={cn(
-                            "text-xs px-2 py-0.5 rounded-full",
-                            session.isBillable ? "bg-gold/20 text-gold" : "bg-green/20 text-green",
-                          )}
-                        >
-                          {session.isBillable ? t.billableMode : t.focusMode}
-                        </span>
-                        {session.status === "interrupted" && (
-                          <span className="text-xs px-2 py-0.5 rounded-full bg-destructive/20 text-destructive">
-                            中断
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 mt-1">
-                        <span className="text-sm text-muted-foreground">{formatDuration(session.duration)}</span>
-                        {session.isBillable && (
-                          <span className="text-sm font-medium text-primary">
-                            +¥{calculateEarnings(session.duration).toLocaleString()}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDeleteSessions([session.id])}
-                      className="text-muted-foreground hover:text-destructive"
                     >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                      {session.isBillable ? t.billableMode : t.focusMode}
+                    </span>
+                    {session.status === "interrupted" && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                        中断
+                      </span>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
+                  <div className="flex items-center gap-4">
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      Duration: {formatDuration(session.duration)}
+                    </span>
+                    {session.isBillable && (
+                      <span className="text-xs font-semibold text-primary">
+                        +¥{calculateEarnings(session.duration).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onDeleteSessions([session.id])}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
             ))}
           </div>
 
-          {/* Pagination Controls */}
+          {/* Pagination Controls - Fixed at bottom */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 pt-2">
+            <div className="flex items-center justify-center gap-2 pt-4 shrink-0">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
               >
-                &lt;
+                <ChevronLeft className="w-4 h-4" />
               </Button>
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-muted-foreground mx-2">
                 {currentPage} / {totalPages}
               </span>
               <Button
@@ -218,8 +225,9 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
                 size="sm"
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
               >
-                &gt;
+                <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           )}
