@@ -1,3 +1,22 @@
+export interface Project {
+  id: string
+  name: string
+  clientName?: string
+  hourlyRate: number
+  color: string
+  archived?: boolean
+  createdAt: number
+  updatedAt: number
+}
+
+export interface Todo {
+  id: string
+  title: string
+  completed: boolean
+  createdAt: number
+  projectId?: string
+}
+
 export interface Session {
   id: string
   timestamp: number
@@ -6,10 +25,11 @@ export interface Session {
   isBillable: boolean
   todoId?: string
   todoTitle?: string
+  projectId?: string
 }
 
 export interface Settings {
-  hourlyRate: number
+  defaultHourlyRate: number
   goalAmount: number
   workDuration: number
   breakDuration: number
@@ -23,7 +43,7 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  hourlyRate: 2500,
+  defaultHourlyRate: 2500,
   goalAmount: 300000,
   workDuration: 25,
   breakDuration: 5,

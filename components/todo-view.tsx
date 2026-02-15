@@ -6,14 +6,23 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import type { Todo } from "@/hooks/use-todo"
+// import type { Todo } from "@/hooks/use-todo"
+import type { Todo } from "@/lib/types" // Use lib/types instead
 
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useProjects } from "@/hooks/use-projects"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
 
 interface TodoViewProps {
     todos: Todo[]
-    addTodo: (title: string) => void
+    addTodo: (title: string, projectId?: string) => void
     toggleTodo: (id: string) => void
     deleteTodo: (id: string) => void
     error?: string | null
@@ -22,11 +31,13 @@ interface TodoViewProps {
 
 export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: TodoViewProps) {
     const [newTodo, setNewTodo] = useState("")
+    const [selectedProjectId, setSelectedProjectId] = useState<string>("none")
     const [filter, setFilter] = useState<"active" | "completed" | "all">("active")
+    const { projects } = useProjects()
 
     const handleAdd = () => {
         if (!newTodo.trim()) return
-        addTodo(newTodo.trim())
+        addTodo(newTodo.trim(), selectedProjectId === "none" ? undefined : selectedProjectId)
         setNewTodo("")
     }
 
@@ -41,6 +52,11 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
         if (filter === "completed") return todo.completed
         return true
     })
+
+    const getProjectName = (projectId?: string) => {
+        if (!projectId) return null
+        return projects.find(p => p.id === projectId)?.name
+    }
 
     return (
         <div className="py-6 space-y-6">
@@ -89,22 +105,43 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
 
             <div className="space-y-4">
                 {/* Add New Todo */}
-                <div className="flex gap-2">
-                    <Input
-                        placeholder={t.addTask}
-                        value={newTodo}
-                        onChange={(e) => setNewTodo(e.target.value)}
-                        onKeyDown={handleKeyDown}
-                        className="flex-1"
-                    />
-                    <Button onClick={handleAdd} size="icon">
-                        <Plus className="w-5 h-5" />
-                    </Button>
+                <div className="flex flex-col gap-2">
+                    <div className="flex gap-2">
+                        <Input
+                            placeholder={t.addTask}
+                            value={newTodo}
+                            onChange={(e) => setNewTodo(e.target.value)}
+                            onKeyDown={handleKeyDown}
+                            className="flex-1"
+                        />
+                        <Button onClick={handleAdd} size="icon">
+                            <Plus className="w-5 h-5" />
+                        </Button>
+                    </div>
+                    <div className="w-1/2">
+                        <Select
+                            value={selectedProjectId}
+                            onValueChange={setSelectedProjectId}
+                        >
+                            <SelectTrigger className="h-8 text-xs bg-background/50">
+                                <SelectValue placeholder={t.selectProject} />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">{t.noProject}</SelectItem>
+                                {projects.map((project) => (
+                                    <SelectItem key={project.id} value={project.id}>
+                                        {project.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
 
                 {/* Todo List Header */}
                 <div className="hidden md:grid grid-cols-12 gap-4 px-3 py-2 text-xs font-medium text-muted-foreground border-b border-border">
-                    <div className="col-span-11">タスク名</div>
+                    <div className="col-span-8">タスク名</div>
+                    <div className="col-span-3">プロジェクト</div>
                     <div className="col-span-1"></div>
                 </div>
 
@@ -130,7 +167,7 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
                                 )}
                             >
                                 {/* Task Name Column */}
-                                <div className="col-span-11 flex items-center gap-3 w-full">
+                                <div className="col-span-8 flex items-center gap-3 w-full">
                                     <button
                                         onClick={() => toggleTodo(todo.id)}
                                         className={cn(
@@ -152,6 +189,19 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
                                     </span>
                                 </div>
 
+                                {/* Project Column */}
+                                <div className="col-span-3 text-xs text-muted-foreground truncate">
+                                    {todo.projectId && (
+                                        <span className="bg-muted px-2 py-1 rounded inline-flex items-center gap-1">
+                                            <span
+                                                className="w-2 h-2 rounded-full inline-block"
+                                                style={{ backgroundColor: projects.find(p => p.id === todo.projectId)?.color || 'transparent' }}
+                                            />
+                                            {getProjectName(todo.projectId)}
+                                        </span>
+                                    )}
+                                </div>
+
                                 {/* Actions Column */}
                                 <div className="col-span-1 flex justify-end w-full">
                                     <Button
@@ -171,3 +221,4 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
         </div>
     )
 }
+

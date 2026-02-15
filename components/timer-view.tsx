@@ -12,12 +12,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useTimerContext } from "./timer-context"
-import type { Todo } from "@/hooks/use-todo"
+import type { Todo } from "@/lib/types"
+import { useProjects } from "@/hooks/use-projects"
 
 interface TimerViewProps {
   settings: Settings
   isBillable: boolean
-  onSessionComplete: (duration: number, status: "completed" | "interrupted") => void
+  onSessionComplete: (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => void
   sessions: Session[]
   todos: Todo[]
   t: Record<string, string>
@@ -37,12 +38,20 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
     finishSession,
     selectedTodoId,
     setSelectedTodoId,
+    selectedProjectId,
+    setSelectedProjectId,
   } = useTimerContext()
 
+  const { projects } = useProjects()
+
+  // Determine current project (either selected or from todo)
+  const currentProject = projects.find(p => p.id === selectedProjectId)
+
   // Real-time Earning Calculation
+  const hourlyRate = currentProject ? currentProject.hourlyRate : settings.defaultHourlyRate
   const workDurationSeconds = settings.workDuration * 60
   const elapsedSeconds = isBreak ? 0 : Math.max(0, workDurationSeconds - timeLeft)
-  const currentEarnings = Math.floor((elapsedSeconds / 3600) * settings.hourlyRate)
+  const currentEarnings = Math.floor((elapsedSeconds / 3600) * hourlyRate)
 
   const formatTime = (seconds: number) => {
     const absSeconds = Math.abs(seconds)
@@ -79,8 +88,8 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
         )}
       />
 
-      {/* Todo Selector */}
-      <div className="w-full max-w-xs z-10">
+      <div className="w-full max-w-xs z-10 space-y-2">
+        {/* Todo Selector */}
         <Select
           value={selectedTodoId || "none"}
           onValueChange={(val) => setSelectedTodoId(val === "none" ? undefined : val)}
@@ -94,6 +103,25 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
             {todos.filter(t => !t.completed).map((todo) => (
               <SelectItem key={todo.id} value={todo.id}>
                 {todo.title}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Project Selector */}
+        <Select
+          value={selectedProjectId || "none"}
+          onValueChange={(val) => setSelectedProjectId(val === "none" ? undefined : val)}
+          disabled={isRunning || (!!selectedTodoId && !!todos.find(t => t.id === selectedTodoId)?.projectId)}
+        >
+          <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm text-xs h-8">
+            <SelectValue placeholder={t.selectProject} />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">{t.noProject}</SelectItem>
+            {projects.map((project) => (
+              <SelectItem key={project.id} value={project.id}>
+                {project.name}
               </SelectItem>
             ))}
           </SelectContent>
@@ -119,6 +147,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
             style={{
               strokeDasharray,
               strokeDashoffset,
+              stroke: currentProject ? currentProject.color : undefined
             }}
           />
         </svg>
@@ -147,10 +176,17 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           {/* Revenue Display (Only in Earn/Billable Mode) */}
           <div className="h-8 flex items-center justify-center mt-2">
             {isBillable && !isBreak && (
-              <div className="flex items-center gap-1 text-emerald-500 font-medium animate-in fade-in slide-in-from-bottom-2 duration-500">
-                <span className="text-xl">
-                  ¥{currentEarnings.toLocaleString()}
-                </span>
+              <div className="flex flex-col items-center animate-in fade-in slide-in-from-bottom-2 duration-500">
+                <div className="flex items-center gap-1 text-emerald-500 font-medium">
+                  <span className="text-xl">
+                    ¥{currentEarnings.toLocaleString()}
+                  </span>
+                </div>
+                {currentProject && (
+                  <span className="text-[10px] text-muted-foreground">
+                    {currentProject.name} (¥{hourlyRate}/h)
+                  </span>
+                )}
               </div>
             )}
             {!isBillable && !isBreak && (
@@ -198,6 +234,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
               "bg-primary text-primary-foreground hover:bg-primary/90",
               isRunning && "shadow-primary/25"
             )}
+            style={{ backgroundColor: currentProject && isRunning ? currentProject.color : undefined }}
           >
             {isRunning ? <Pause className="w-10 h-10" /> : <Play className="w-10 h-10 ml-1" />}
           </Button>

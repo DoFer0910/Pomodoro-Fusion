@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import type { Session, Settings } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { useProjects } from "@/hooks/use-projects"
 
 interface HistoryViewProps {
   sessions: Session[]
@@ -20,6 +21,7 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const maxItems = 100
+  const { projects } = useProjects()
 
   // Filter and sort sessions - Global list (up to maxItems)
   const displaySessions = useMemo(() => {
@@ -52,10 +54,7 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
   }
 
   const toggleSelectAll = () => {
-    // Select all displayed on CURRENT PAGE, or perhaps all generally? 
-    // Usually "Select All" in pagination context means "Select All on Page". 
-    // Let's stick to current page for usability, or maybe all visible?
-    // User request: "一ページに10件ずつ表示" so let's select current page items.
+    // Select all displayed on CURRENT PAGE
     const pageIds = new Set(paginatedSessions.map(s => s.id))
     const allSelected = paginatedSessions.every(s => selectedIds.has(s.id))
 
@@ -93,8 +92,20 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
     return `${mins}${t.minutes}`
   }
 
-  const calculateEarnings = (duration: number) => {
-    return Math.round((duration / 3600) * settings.hourlyRate)
+  const calculateEarnings = (session: Session) => {
+    let rate = settings.defaultHourlyRate
+    if (session.projectId) {
+      const project = projects.find(p => p.id === session.projectId)
+      if (project) {
+        rate = project.hourlyRate
+      }
+    }
+    return Math.round((session.duration / 3600) * rate)
+  }
+
+  const getProjectDetails = (projectId?: string) => {
+    if (!projectId) return null
+    return projects.find(p => p.id === projectId)
   }
 
   return (
@@ -132,77 +143,86 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 min-h-0 overflow-y-auto pr-2 space-y-2">
-            {/* Using standard div with overflow-auto instead of ScrollArea for simplicity in interaction inside complex layouts, or implement ScrollArea properly wrapping this */}
-            {/* The user specifically asked for Radix ScrollArea. Let's try to use it if available or standard scroll if not imported. I see @radix-ui/react-scroll-area in package.json and components/ui/scroll-area.tsx. Let's import it.*/}
-            {/* Retrying with ScrollArea import below */}
-            {paginatedSessions.map((session) => (
-              <div
-                key={session.id}
-                className={cn(
-                  "group relative flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
-                  selectedIds.has(session.id)
-                    ? "bg-primary/5 border-primary/50"
-                    : "bg-card hover:bg-accent/50 border-border hover:border-border/80 hover:shadow-sm",
-                )}
-              >
-                {/* Selection Checkbox */}
-                <button
-                  onClick={() => toggleSelect(session.id)}
-                  className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+            {paginatedSessions.map((session) => {
+              const project = getProjectDetails(session.projectId)
+              return (
+                <div
+                  key={session.id}
+                  className={cn(
+                    "group relative flex items-center gap-3 p-3 rounded-lg border transition-all duration-200",
+                    selectedIds.has(session.id)
+                      ? "bg-primary/5 border-primary/50"
+                      : "bg-card hover:bg-accent/50 border-border hover:border-border/80 hover:shadow-sm",
+                  )}
                 >
-                  {selectedIds.has(session.id) ? (
-                    <CheckSquare className="w-5 h-5 text-primary" />
-                  ) : (
-                    <Square className="w-5 h-5 opacity-50 group-hover:opacity-100" />
-                  )}
-                </button>
+                  {/* Selection Checkbox */}
+                  <button
+                    onClick={() => toggleSelect(session.id)}
+                    className="text-muted-foreground hover:text-foreground transition-colors shrink-0"
+                  >
+                    {selectedIds.has(session.id) ? (
+                      <CheckSquare className="w-5 h-5 text-primary" />
+                    ) : (
+                      <Square className="w-5 h-5 opacity-50 group-hover:opacity-100" />
+                    )}
+                  </button>
 
-                <div className="flex-1 min-w-0">
-                  {session.todoTitle && (
-                    <div className="mb-1 text-xs font-semibold text-primary/90 truncate">
-                      {session.todoTitle}
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-sm font-medium text-foreground">{formatDate(session.timestamp)}</span>
-                    <span
-                      className={cn(
-                        "text-[10px] px-1.5 py-0.5 rounded-full border",
-                        session.isBillable
-                          ? "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400"
-                          : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      {session.todoTitle && (
+                        <div className="text-xs font-semibold text-primary/90 truncate max-w-[200px]" title={session.todoTitle}>
+                          {session.todoTitle}
+                        </div>
                       )}
-                    >
-                      {session.isBillable ? t.billableMode : t.focusMode}
-                    </span>
-                    {session.status === "interrupted" && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
-                        中断
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      Duration: {formatDuration(session.duration)}
-                    </span>
-                    {session.isBillable && (
-                      <span className="text-xs font-semibold text-primary">
-                        +¥{calculateEarnings(session.duration).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
+                      {project && (
+                        <div className="flex items-center gap-1 text-[10px] bg-muted px-1.5 py-0.5 rounded-full text-muted-foreground border border-border">
+                          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: project.color }} />
+                          <span className="truncate max-w-[100px]">{project.name}</span>
+                        </div>
+                      )}
+                    </div>
 
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onDeleteSessions([session.id])}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </div>
-            ))}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-sm font-medium text-foreground">{formatDate(session.timestamp)}</span>
+                      <span
+                        className={cn(
+                          "text-[10px] px-1.5 py-0.5 rounded-full border",
+                          session.isBillable
+                            ? "bg-amber-500/10 text-amber-600 border-amber-500/20 dark:text-amber-400"
+                            : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 dark:text-emerald-400",
+                        )}
+                      >
+                        {session.isBillable ? t.billableMode : t.focusMode}
+                      </span>
+                      {session.status === "interrupted" && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
+                          中断
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        Duration: {formatDuration(session.duration)}
+                      </span>
+                      {session.isBillable && (
+                        <span className="text-xs font-semibold text-primary">
+                          +¥{calculateEarnings(session).toLocaleString()}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDeleteSessions([session.id])}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )
+            })}
           </div>
 
           {/* Pagination Controls - Fixed at bottom */}

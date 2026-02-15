@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useCallback } from "react"
 import type { Settings, Session } from "@/lib/types"
 import { useTimer } from "@/hooks/use-timer"
-import type { Todo } from "@/hooks/use-todo"
+import type { Todo } from "@/lib/types"
 
 interface TimerContextType {
     timeLeft: number
@@ -19,6 +19,8 @@ interface TimerContextType {
     totalTime: number
     selectedTodoId: string | undefined
     setSelectedTodoId: (id: string | undefined) => void
+    selectedProjectId: string | undefined
+    setSelectedProjectId: (id: string | undefined) => void
 }
 
 const TimerContext = createContext<TimerContextType | null>(null)
@@ -27,13 +29,24 @@ interface TimerProviderProps {
     settings: Settings
     sessions: Session[]
     todos: Todo[]
-    onSessionComplete: (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string) => void
+    onSessionComplete: (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => void
     children: React.ReactNode
 }
 
 export function TimerProvider({ settings, sessions, todos, onSessionComplete, children }: TimerProviderProps) {
     const [isBreak, setIsBreak] = useState(false)
     const [selectedTodoId, setSelectedTodoId] = useState<string>()
+    const [selectedProjectId, setSelectedProjectId] = useState<string>()
+
+    // Update selectedProjectId when selectedTodoId changes
+    React.useEffect(() => {
+        if (selectedTodoId) {
+            const todo = todos.find(t => t.id === selectedTodoId)
+            if (todo && todo.projectId) {
+                setSelectedProjectId(todo.projectId)
+            }
+        }
+    }, [selectedTodoId, todos])
 
     // Calculate if next/current break is a long break
     // Filter for completed sessions today
@@ -54,8 +67,8 @@ export function TimerProvider({ settings, sessions, todos, onSessionComplete, ch
 
     const handleSessionComplete = useCallback((duration: number, status: "completed" | "interrupted") => {
         const todo = todos.find(t => t.id === selectedTodoId)
-        onSessionComplete(duration, status, selectedTodoId, todo?.title)
-    }, [onSessionComplete, selectedTodoId, todos])
+        onSessionComplete(duration, status, selectedTodoId, todo?.title, selectedProjectId)
+    }, [onSessionComplete, selectedTodoId, todos, selectedProjectId])
 
     const timer = useTimer({
         settings: effectiveSettings,
@@ -67,7 +80,9 @@ export function TimerProvider({ settings, sessions, todos, onSessionComplete, ch
     const value = {
         ...timer,
         selectedTodoId,
-        setSelectedTodoId
+        setSelectedTodoId,
+        selectedProjectId,
+        setSelectedProjectId
     }
 
     return <TimerContext.Provider value={value}>{children}</TimerContext.Provider>

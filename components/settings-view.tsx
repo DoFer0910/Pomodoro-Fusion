@@ -11,6 +11,8 @@ import { Switch } from "@/components/ui/switch"
 import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-management"
 import { toast } from "sonner"
 
+import { ProjectList } from "./project-list"
+
 interface SettingsViewProps {
   settings: Settings
   onSettingsChange: (settings: Settings) => void
@@ -71,27 +73,32 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
       <h2 className="text-xl font-semibold text-foreground">{t.settings}</h2>
 
       {isBillable && (
-        <Card className="bg-card border-border">
-          <CardHeader>
-            <CardTitle className="text-base font-medium text-foreground">{t.billableMode}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="hourlyRate" className="text-muted-foreground">
-                {t.hourlyRate} (¥)
-              </Label>
-              <Input
-                id="hourlyRate"
-                type="number"
-                value={formData.hourlyRate}
-                onChange={(e) => setFormData({ ...formData, hourlyRate: Number(e.target.value) })}
-                className="bg-input border-border"
-              />
-            </div>
+        <>
+          <Card className="bg-card border-border">
+            <CardHeader>
+              <CardTitle className="text-base font-medium text-foreground">{t.billableMode}</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="defaultHourlyRate" className="text-muted-foreground">
+                  {t.defaultHourlyRate} (¥)
+                </Label>
+                <Input
+                  id="defaultHourlyRate"
+                  type="number"
+                  value={formData.defaultHourlyRate}
+                  onChange={(e) => setFormData({ ...formData, defaultHourlyRate: Number(e.target.value) })}
+                  className="bg-input border-border"
+                />
+                <p className="text-xs text-muted-foreground">
+                  {t.defaultHourlyRateDesc}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-
-          </CardContent>
-        </Card>
+          <ProjectList defaultHourlyRate={formData.defaultHourlyRate} t={t} />
+        </>
       )}
 
       <Card className="bg-card border-border">

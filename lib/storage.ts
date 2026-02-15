@@ -30,3 +30,36 @@ export function saveSettings(settings: Settings): void {
   if (typeof window === "undefined") return
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings))
 }
+const PROJECTS_KEY = "pomodoro-projects"
+
+export function getProjects(): import("./types").Project[] {
+  if (typeof window === "undefined") return []
+  const data = localStorage.getItem(PROJECTS_KEY)
+  return data ? JSON.parse(data) : []
+}
+
+export function saveProjects(projects: import("./types").Project[]): void {
+  if (typeof window === "undefined") return
+  localStorage.setItem(PROJECTS_KEY, JSON.stringify(projects))
+}
+
+export function addProject(project: import("./types").Project): void {
+  const projects = getProjects()
+  projects.push(project)
+  saveProjects(projects)
+}
+
+export function updateProject(project: import("./types").Project): void {
+  const projects = getProjects()
+  const index = projects.findIndex((p) => p.id === project.id)
+  if (index !== -1) {
+    projects[index] = project
+    saveProjects(projects)
+  }
+}
+
+export function deleteProject(id: string): void {
+  const projects = getProjects()
+  const filtered = projects.filter((p) => p.id !== id)
+  saveProjects(filtered)
+}

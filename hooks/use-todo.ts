@@ -2,12 +2,7 @@
 
 import { useState, useEffect } from "react"
 
-export interface Todo {
-    id: string
-    title: string
-    completed: boolean
-    createdAt: number
-}
+import { Todo } from "@/lib/types"
 
 const TODOS_KEY = "pomodoro-todos"
 
@@ -21,9 +16,6 @@ export function useTodo() {
         const stored = localStorage.getItem(TODOS_KEY)
         if (stored) {
             try {
-                // Filter out any old data that might have notion specific fields if needed, 
-                // but local storage just stores JSON, so extra fields will just be ignored by the new interface at runtime typescript-wise,
-                // but to be clean we could map it. For now, just parsing is fine.
                 setTodos(JSON.parse(stored))
             } catch (e) {
                 console.error("Failed to parse todos", e)
@@ -37,12 +29,13 @@ export function useTodo() {
         }
     }, [todos, mounted])
 
-    const addTodo = (title: string) => {
+    const addTodo = (title: string, projectId?: string) => {
         const newTodo: Todo = {
             id: crypto.randomUUID(),
             title,
             completed: false,
             createdAt: Date.now(),
+            projectId,
         }
         setTodos((prev) => [newTodo, ...prev])
     }

@@ -5,7 +5,8 @@ import {
     saveSettings as persistSettings,
     getSessions,
     saveSessions as persistSessions,
-    addSession as persistSession
+    addSession as persistSession,
+    getProjects
 } from "@/lib/storage"
 
 export function usePomodoro() {
@@ -28,7 +29,7 @@ export function usePomodoro() {
     }, [])
 
     const addSession = useCallback(
-        (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string) => {
+        (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => {
             const session: Session = {
                 id: crypto.randomUUID(),
                 timestamp: Date.now(),
@@ -37,25 +38,35 @@ export function usePomodoro() {
                 isBillable,
                 todoId,
                 todoTitle,
+                projectId,
             }
             persistSession(session)
             setSessions(getSessions())
 
             if (isBillable) {
+                let rate = settings.defaultHourlyRate
+                if (projectId) {
+                    const projects = getProjects()
+                    const project = projects.find((p) => p.id === projectId)
+                    if (project) {
+                        rate = project.hourlyRate
+                    }
+                }
+
                 if (status === "completed") {
-                    const earned = Math.round((duration / 3600) * settings.hourlyRate)
+                    const earned = Math.round((duration / 3600) * rate)
                     setEarnedAmount(earned)
                     setShowMoneyOverlay(true)
                     setTimeout(() => setShowMoneyOverlay(false), 2000)
                 } else if (status === "interrupted" && settings.countInterruptedSessions) {
-                    const earned = Math.round((duration / 3600) * settings.hourlyRate)
+                    const earned = Math.round((duration / 3600) * rate)
                     setEarnedAmount(earned)
                     setShowMoneyOverlay(true)
                     setTimeout(() => setShowMoneyOverlay(false), 2000)
                 }
             }
         },
-        [isBillable, settings.hourlyRate, settings.countInterruptedSessions],
+        [isBillable, settings.defaultHourlyRate, settings.countInterruptedSessions],
     )
 
     const deleteSessions = useCallback(

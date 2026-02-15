@@ -90,7 +90,7 @@ function PomodoroAppContent({
   isBillable: boolean
   setIsBillable: (v: boolean) => void
   updateSettings: (s: any) => void
-  addSession: (d: number, s: "completed" | "interrupted", todoId?: string, todoTitle?: string) => void
+  addSession: (d: number, s: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => void
   deleteSessions: (ids: string[]) => void
   todos: any[]
   addTodo: (t: string) => void

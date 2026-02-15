@@ -1,9 +1,10 @@
-import { type Session, type Settings, DEFAULT_SETTINGS } from "./types"
-import { getSessions, getSettings, saveSessions, saveSettings } from "./storage"
+import { type Session, type Settings, DEFAULT_SETTINGS, type Project } from "./types"
+import { getSessions, getSettings, saveSessions, saveSettings, getProjects, saveProjects } from "./storage"
 
 export interface AppData {
     settings: Settings
     sessions: Session[]
+    projects: Project[]
     version: number
     exportedAt: number
 }
@@ -14,6 +15,7 @@ export function exportData(): string {
     const data: AppData = {
         settings: getSettings(),
         sessions: getSessions(),
+        projects: getProjects(),
         version: CURRENT_VERSION,
         exportedAt: Date.now(),
     }
@@ -35,6 +37,9 @@ export function importData(jsonString: string): { success: boolean; error?: stri
         // Save data
         saveSettings(newSettings)
         saveSessions(data.sessions)
+        if (data.projects && Array.isArray(data.projects)) {
+            saveProjects(data.projects)
+        }
 
         return { success: true }
     } catch (e) {
@@ -45,6 +50,8 @@ export function importData(jsonString: string): { success: boolean; error?: stri
 export function exportCSV(): string {
     const sessions = getSessions()
     const settings = getSettings()
+    const projects = getProjects()
+    const projectMap = new Map(projects.map(p => [p.id, p]))
 
     // CSV Header
     const headers = [
@@ -53,7 +60,9 @@ export function exportCSV(): string {
         "Duration (min)",
         "Status",
         "Type",
-        "Earnings (¥)"
+        "Earnings (¥)",
+        "Project",
+        "Client"
     ]
 
     const rows = sessions.map(session => {
@@ -62,9 +71,12 @@ export function exportCSV(): string {
         const timeStr = date.toLocaleTimeString()
         const durationMin = Math.round(session.duration / 60)
 
+        const project = session.projectId ? projectMap.get(session.projectId) : undefined
+        const hourlyRate = project ? project.hourlyRate : settings.defaultHourlyRate
+
         let earnings = 0
         if (session.status === "completed" && session.isBillable) {
-            earnings = Math.round((session.duration / 3600) * settings.hourlyRate)
+            earnings = Math.round((session.duration / 3600) * hourlyRate)
         }
 
         return [
@@ -73,7 +85,9 @@ export function exportCSV(): string {
             durationMin.toString(),
             session.status,
             session.isBillable ? "Billable" : "Non-Billable",
-            earnings.toString()
+            earnings.toString(),
+            project?.name || "",
+            project?.clientName || ""
         ].join(",")
     })
 

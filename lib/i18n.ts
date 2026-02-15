@@ -78,6 +78,27 @@ export const translations = {
     noTasks: "タスクがありません",
     selectTask: "タスクを選択...",
     noTaskSelected: "タスクなし",
+
+    // Projects
+    projects: "プロジェクト",
+    addProject: "プロジェクトを追加",
+    editProject: "プロジェクトを編集",
+    projectName: "プロジェクト名",
+    clientName: "クライアント名 (任意)",
+    projectColor: "カラー",
+    selectProject: "プロジェクトを選択...",
+    noProject: "プロジェクトなし",
+    defaultHourlyRate: "デフォルト時給",
+    defaultHourlyRateDesc: "プロジェクトが選択されていない場合に適用される時給です。",
+
+    // Stats additional
+    edit: "編集",
+    goalAchieved: "目標達成！",
+    focusModeNoGoal: "没頭モード - 目標金額なし",
+    dailyEarnings: "日別収益",
+    dailyFocusTime: "日別集中時間",
+    activityMap: "アクティビティマップ",
+    dailyDetails: "日別詳細",
   },
   en: {
     // Header
@@ -156,6 +177,27 @@ export const translations = {
     noTasks: "No tasks",
     selectTask: "Select a task...",
     noTaskSelected: "No Task",
+
+    // Projects
+    projects: "Projects",
+    addProject: "Add Project",
+    editProject: "Edit Project",
+    projectName: "Project Name",
+    clientName: "Client Name (Optional)",
+    projectColor: "Color",
+    selectProject: "Select Project...",
+    noProject: "No Project",
+    defaultHourlyRate: "Default Hourly Rate",
+    defaultHourlyRateDesc: "This rate is used when no specific project is selected.",
+
+    // Stats additional
+    edit: "Edit",
+    goalAchieved: "Goal Achieved!",
+    focusModeNoGoal: "Focus Mode - No Monetary Goal",
+    dailyEarnings: "Daily Earnings",
+    dailyFocusTime: "Daily Focus Time",
+    activityMap: "Activity Map",
+    dailyDetails: "Daily Details",
   },
 } as const
 

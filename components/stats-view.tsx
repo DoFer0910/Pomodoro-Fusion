@@ -33,15 +33,29 @@ interface StatsViewProps {
   onSettingsChange: (settings: Settings) => void
 }
 
+import { useProjects } from "@/hooks/use-projects"
+
 export function StatsView({ sessions, settings, isBillable, t, onSettingsChange }: StatsViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [isEditingGoal, setIsEditingGoal] = useState(false)
   const [tempGoal, setTempGoal] = useState("")
+  const { projects } = useProjects()
 
   // Filter sessions based on current mode
   const filteredSessions = useMemo(() => {
     return sessions.filter(s => s.isBillable === isBillable)
   }, [sessions, isBillable])
+
+  const calculateSessionEarnings = (session: Session) => {
+    let rate = settings.defaultHourlyRate
+    if (session.projectId) {
+      const project = projects.find(p => p.id === session.projectId)
+      if (project) {
+        rate = project.hourlyRate
+      }
+    }
+    return Math.round((session.duration / 3600) * rate)
+  }
 
   const monthlyStats = useMemo(() => {
     const year = selectedDate.getFullYear()
@@ -57,7 +71,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     )
 
     const totalDuration = monthlySessions.reduce((acc, s) => acc + s.duration, 0)
-    const totalEarnings = Math.round((totalDuration / 3600) * settings.hourlyRate)
+    const totalEarnings = monthlySessions.reduce((acc, s) => acc + calculateSessionEarnings(s), 0)
 
     // Calculate daily data for Recharts
     const daysInMonth = new Date(year, month + 1, 0).getDate()
@@ -70,7 +84,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       })
 
       const dayDuration = daySessions.reduce((acc, s) => acc + s.duration, 0)
-      const dayEarnings = Math.round((dayDuration / 3600) * settings.hourlyRate)
+      const dayEarnings = daySessions.reduce((acc, s) => acc + calculateSessionEarnings(s), 0)
       const dayHours = parseFloat((dayDuration / 3600).toFixed(1))
 
       return {
@@ -87,7 +101,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     const monthlyGoal = settings.monthlyGoals?.[currentMonthKey] ?? settings.goalAmount
     const progress = Math.min((totalEarnings / monthlyGoal) * 100, 100)
     const remainingAmount = monthlyGoal - totalEarnings
-    const remainingHours = remainingAmount > 0 ? Math.ceil(remainingAmount / settings.hourlyRate) : 0
+    const remainingHours = remainingAmount > 0 ? Math.ceil(remainingAmount / settings.defaultHourlyRate) : 0 // Use default rate for remaining estimation
 
     // Remaining days
     const now = new Date()
@@ -116,7 +130,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       monthlyGoal,
       dailyData
     }
-  }, [filteredSessions, settings, selectedDate])
+  }, [filteredSessions, settings, selectedDate, projects])
 
   const handleSaveGoal = () => {
     const newGoal = parseInt(tempGoal, 10)
@@ -162,7 +176,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     <div className="py-6 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold text-foreground tracking-tight">{t.thisMonth || "Statistics"}</h2>
+        <h2 className="text-xl font-semibold text-foreground tracking-tight">{t.thisMonth || t.stats}</h2>
         <div className="flex items-center gap-2 bg-muted/50 p-1 rounded-lg border border-border/50 backdrop-blur-sm">
           <Button variant="ghost" size="icon" onClick={() => navigateMonth(-1)} className="h-8 w-8 hover:bg-background/80">
             <ChevronLeft className="w-4 h-4" />
@@ -224,7 +238,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <Target className="w-4 h-4 text-blue-500" />
-                  {t.goal || "Goal"}
+                  {t.goal}
                 </CardTitle>
                 {isEditingGoal ? (
                   <div className="flex items-center gap-1">
@@ -253,7 +267,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
                     className="h-6 gap-2 text-muted-foreground hover:text-foreground px-2"
                     onClick={startEditingGoal}
                   >
-                    <span className="text-xs">Edit</span>
+                    <span className="text-xs">{t.edit}</span>
                     <Pencil className="w-3 h-3" />
                   </Button>
                 )}
@@ -285,7 +299,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
               ) : (
                 <div className="flex items-center justify-center p-2 text-green-500 bg-green-500/10 rounded-md">
                   <Check className="w-4 h-4 mr-2" />
-                  <span className="text-sm font-medium">Goal Achieved!</span>
+                  <span className="text-sm font-medium">{t.goalAchieved}</span>
                 </div>
               )}
             </CardContent>
@@ -293,7 +307,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
         ) : (
           // Placeholder for focus mode if goal card is not shown (Span 2)
           <Card className="col-span-1 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm flex items-center justify-center">
-            <p className="text-muted-foreground text-sm">Focus Mode - No Monetary Goal</p>
+            <p className="text-muted-foreground text-sm">{t.focusModeNoGoal}</p>
           </Card>
         )}
 
@@ -301,7 +315,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
         <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm min-h-[300px]">
           <CardHeader>
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              {isBillable ? "Daily Earnings" : "Daily Focus Time"}
+              {isBillable ? t.dailyEarnings : t.dailyFocusTime}
             </CardTitle>
           </CardHeader>
           <CardContent className="pl-0">
@@ -390,7 +404,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
           <CardHeader className="pb-4">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
               <CalendarIcon className="w-4 h-4" />
-              Activity Map
+              {t.activityMap}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -401,7 +415,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
         {/* Calendar Detail (Span 4) */}
         <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm h-full">
           <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Daily Details</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground">{t.dailyDetails}</CardTitle>
           </CardHeader>
           <CardContent>
             <ActivityCalendar
