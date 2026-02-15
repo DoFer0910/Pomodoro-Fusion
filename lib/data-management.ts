@@ -56,20 +56,35 @@ export async function exportCSV(): Promise<string> {
     // CSV Header
     const headers = [
         "Date",
-        "Time",
-        "Duration (min)",
+        "Project Name",
+        "Client Name",
         "Status",
         "Type",
-        "Earnings (¥)",
-        "Project",
-        "Client"
+        "Start Time",
+        "End Time",
+        "Duration (min)",
+        "Break Time (min)",
+        "Hourly Rate (¥)",
+        "Earnings (¥)"
     ]
 
     const rows = sessions.map(session => {
-        const date = new Date(session.timestamp)
-        const dateStr = date.toLocaleDateString()
-        const timeStr = date.toLocaleTimeString()
+        const dateObj = new Date(session.timestamp)
+        const dateStr = dateObj.toLocaleDateString()
+
+        // Start Time
+        const startTimeStr = dateObj.toLocaleTimeString()
+
+        // End Time (Approximate: Start + Duration)
+        const endTimeObj = new Date(session.timestamp + session.duration * 1000)
+        const endTimeStr = endTimeObj.toLocaleTimeString()
+
+        // Duration in minutes
         const durationMin = Math.round(session.duration / 60)
+
+        // Break Time (Estimated based on settings if completed)
+        // Note: This is a simplification as actual break time isn't tracked per session in current model
+        const breakTime = session.status === "completed" ? settings.breakDuration : 0
 
         const project = session.projectId ? projectMap.get(session.projectId) : undefined
         const hourlyRate = project ? project.hourlyRate : settings.defaultHourlyRate
@@ -79,19 +94,33 @@ export async function exportCSV(): Promise<string> {
             earnings = Math.round((session.duration / 3600) * hourlyRate)
         }
 
+        // Helper to escape CSV fields
+        const escape = (field: string | number | undefined) => {
+            if (field === undefined || field === null) return ""
+            const str = String(field)
+            if (str.includes(",") || str.includes("\"") || str.includes("\n")) {
+                return `"${str.replace(/"/g, '""')}"`
+            }
+            return str
+        }
+
         return [
-            dateStr,
-            timeStr,
-            durationMin.toString(),
-            session.status,
-            session.isBillable ? "Billable" : "Non-Billable",
-            earnings.toString(),
-            project?.name || "",
-            project?.clientName || ""
+            escape(dateStr),
+            escape(project?.name || "No Project"),
+            escape(project?.clientName || ""),
+            escape(session.status),
+            escape(session.isBillable ? "Billable" : "Non-Billable"),
+            escape(startTimeStr),
+            escape(endTimeStr),
+            escape(durationMin),
+            escape(breakTime),
+            escape(hourlyRate),
+            escape(earnings)
         ].join(",")
     })
 
-    return [headers.join(","), ...rows].join("\n")
+    // Add BOM for Excel compatibility
+    return "\uFEFF" + [headers.join(","), ...rows].join("\n")
 }
 
 export function downloadFile(content: string, filename: string, type: string) {

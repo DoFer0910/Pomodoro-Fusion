@@ -19,6 +19,10 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -120,6 +124,33 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       ? (remainingHours / remainingDays).toFixed(1)
       : "0"
 
+    // Project stats calculation
+    const projectStatsMap = new Map<string, { id: string, name: string, color: string, duration: number, earnings: number }>()
+
+    monthlySessions.forEach(session => {
+      const projectId = session.projectId || "unknown"
+      const project = projects.find(p => p.id === projectId)
+      const name = project?.name || (projectId === "unknown" ? t.noProject : t.unknownProject)
+      const color = project?.color || "#94a3b8" // slate-400 as default
+
+      const current = projectStatsMap.get(projectId) || { id: projectId, name, color, duration: 0, earnings: 0 }
+
+      current.duration += session.duration
+      if (session.isBillable) {
+        let rate = project?.hourlyRate || settings.defaultHourlyRate
+        current.earnings += Math.round((session.duration / 3600) * rate)
+      }
+
+      projectStatsMap.set(projectId, current)
+    })
+
+    const projectStats = Array.from(projectStatsMap.values())
+      .map(p => ({
+        ...p,
+        hours: parseFloat((p.duration / 3600).toFixed(1))
+      }))
+      .sort((a, b) => isBillable ? b.earnings - a.earnings : b.duration - a.duration)
+
     return {
       totalEarnings,
       totalDuration,
@@ -128,7 +159,8 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       dailyRemainingHours,
       sessionCount: monthlySessions.length,
       monthlyGoal,
-      dailyData
+      dailyData,
+      projectStats
     }
   }, [filteredSessions, settings, selectedDate, projects])
 
@@ -307,9 +339,89 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
         ) : (
           // Placeholder for focus mode if goal card is not shown (Span 2)
           <Card className="col-span-1 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm flex items-center justify-center">
-            <p className="text-muted-foreground text-sm">{t.focusModeNoGoal}</p>
+            <div className="text-center space-y-2">
+              <p className="text-muted-foreground text-sm">{t.focusModeNoGoal}</p>
+            </div>
           </Card>
         )}
+
+        {/* Project Breakdown (Span 2 or 4 depending on layout) */}
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm min-h-[300px]">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              {t.projectBreakdown || "Project Breakdown"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+              {/* Pie Chart */}
+              <div className="h-[250px] w-full relative">
+                {monthlyStats.projectStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={monthlyStats.projectStats}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={2}
+                        dataKey={isBillable ? "earnings" : "duration"}
+                      >
+                        {monthlyStats.projectStats.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        formatter={(value: number) => isBillable ? `¥${value.toLocaleString()}` : formatDuration(value)}
+                        contentStyle={{ backgroundColor: 'var(--popover)', borderRadius: '8px', border: '1px solid var(--border)' }}
+                        itemStyle={{ color: 'var(--foreground)' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
+                    No data
+                  </div>
+                )}
+                {/* Center Text for Total */}
+                {monthlyStats.projectStats.length > 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none flex-col">
+                    <span className="text-2xl font-bold">
+                      {isBillable ? `¥${monthlyStats.totalEarnings.toLocaleString()}` : formatDuration(monthlyStats.totalDuration)}
+                    </span>
+                    <span className="text-xs text-muted-foreground">Total</span>
+                  </div>
+                )}
+              </div>
+
+              {/* List */}
+              <div className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                {monthlyStats.projectStats.map((project) => (
+                  <div key={project.id} className="flex items-center justify-between group">
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: project.color }} />
+                      <span className="text-sm font-medium truncate" title={project.name}>{project.name}</span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-sm font-semibold">
+                        {isBillable ? `¥${project.earnings.toLocaleString()}` : formatDuration(project.duration)}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {project.hours}h ({((isBillable ? project.earnings / monthlyStats.totalEarnings : project.duration / monthlyStats.totalDuration) * 100 || 0).toFixed(1)}%)
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {monthlyStats.projectStats.length === 0 && (
+                  <div className="text-center text-muted-foreground text-sm py-4">
+                    No projects active this month
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Chart (Span 4) */}
         <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm min-h-[300px]">

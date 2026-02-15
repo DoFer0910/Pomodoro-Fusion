@@ -100,6 +100,8 @@ export const translations = {
     dailyFocusTime: "日別集中時間",
     activityMap: "アクティビティマップ",
     dailyDetails: "日別詳細",
+    projectBreakdown: "プロジェクト別内訳",
+    unknownProject: "未分類",
   },
   en: {
     // Header
@@ -200,6 +202,8 @@ export const translations = {
     dailyFocusTime: "Daily Focus Time",
     activityMap: "Activity Map",
     dailyDetails: "Daily Details",
+    projectBreakdown: "Project Breakdown",
+    unknownProject: "Unknown Project",
   },
 } as const
 
