@@ -50,12 +50,15 @@ export function PomodoroApp() {
   const toggleCompactMode = async () => {
     if (typeof window !== 'undefined' && (window as any).electron) {
       const newState = !isCompactMode
-      await (window as any).electron.setCompactMode(newState)
+
+      // Update UI state immediately for responsiveness
       setIsCompactMode(newState)
       if (newState) {
-        // As requested: When entering compact mode, ensure always on top is active
         setIsAlwaysOnTop(true)
       }
+
+      // Then notify main process
+      await (window as any).electron.setCompactMode(newState)
     }
   }
 

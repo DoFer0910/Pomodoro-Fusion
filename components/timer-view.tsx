@@ -62,9 +62,10 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
     return `${isOvertime ? "+" : ""}${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  const ringRadius = isCompactMode ? 100 : 140
-  const strokeWidth = isCompactMode ? 6 : 8
-  const viewBoxSize = isCompactMode ? 220 : 300
+  // Fixed geometry for smoother transitions
+  const ringRadius = 120 // Fixed radius
+  const strokeWidth = 8 // Fixed stroke width
+  const viewBoxSize = 280 // Fixed view box
   const centerValue = viewBoxSize / 2
 
   const strokeDasharray = 2 * Math.PI * ringRadius
@@ -88,8 +89,8 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
 
   return (
     <div className={cn(
-      "flex flex-col items-center justify-center relative",
-      isCompactMode ? "space-y-4 app-region-drag select-none" : "py-6 space-y-8"
+      "flex flex-col items-center justify-center relative transition-all duration-300",
+      isCompactMode ? "space-y-4 app-region-drag select-none scale-90" : "py-6 space-y-8 scale-100"
     )}>
 
       {/* Background Ambient Glow (Standard Mode Only) */}
@@ -146,18 +147,18 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       )}
 
       {/* Timer Ring Container */}
-      <div className={cn("relative transition-all duration-300", isCompactMode ? "w-48 h-48" : "w-80 h-80")}>
+      <div className={cn("relative transition-all duration-300 ease-in-out", isCompactMode ? "w-48 h-48" : "w-80 h-80")}>
         {/* Compact Mode Toggle Button (Only visible in Compact Mode for restoring) */}
         {isCompactMode && (
-          <div className="absolute -top-2 -right-2 z-20 app-region-no-drag">
+          <div className="absolute -top-4 -right-4 z-20 app-region-no-drag">
             <Button
               variant="ghost"
               size="icon"
               onClick={toggleCompactMode}
-              className="rounded-full bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-all w-6 h-6"
+              className="rounded-full bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-all w-8 h-8"
               title={t.expand}
             >
-              <Maximize2 className="w-3 h-3" />
+              <Maximize2 className="w-4 h-4" />
             </Button>
           </div>
         )}
