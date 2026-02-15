@@ -24,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground`}>
+      <body className={`${inter.variable} ${geistMono.variable} font-sans antialiased text-foreground`}>
         {children}
         <Analytics />
       </body>

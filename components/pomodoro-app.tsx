@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff } from "lucide-react"
+import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff, Minimize2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { type Settings, DEFAULT_SETTINGS, type Session } from "@/lib/types" // handled by hook
 import { useTranslation } from "@/lib/i18n"
@@ -36,6 +36,7 @@ export function PomodoroApp() {
 
   const [currentView, setCurrentView] = useState<View>("timer")
   const [isAlwaysOnTop, setIsAlwaysOnTop] = useState(false)
+  const [isCompactMode, setIsCompactMode] = useState(false)
   const t = useTranslation(settings.language)
 
   const toggleAlwaysOnTop = async () => {
@@ -43,6 +44,18 @@ export function PomodoroApp() {
       const newState = !isAlwaysOnTop
       await (window as any).electron.setAlwaysOnTop(newState)
       setIsAlwaysOnTop(newState)
+    }
+  }
+
+  const toggleCompactMode = async () => {
+    if (typeof window !== 'undefined' && (window as any).electron) {
+      const newState = !isCompactMode
+      await (window as any).electron.setCompactMode(newState)
+      setIsCompactMode(newState)
+      if (newState) {
+        // As requested: When entering compact mode, ensure always on top is active
+        setIsAlwaysOnTop(true)
+      }
     }
   }
 
@@ -69,11 +82,15 @@ export function PomodoroApp() {
         setCurrentView={setCurrentView}
         isAlwaysOnTop={isAlwaysOnTop}
         toggleAlwaysOnTop={toggleAlwaysOnTop}
+        isCompactMode={isCompactMode}
+        toggleCompactMode={toggleCompactMode}
         t={t}
       />
     </TimerProvider>
   )
 }
+
+import { TitleBar } from "./title-bar"
 
 // Extract content to separate component to keep main clear and because we might want to access context here later
 function PomodoroAppContent({
@@ -96,6 +113,8 @@ function PomodoroAppContent({
   setCurrentView,
   isAlwaysOnTop,
   toggleAlwaysOnTop,
+  isCompactMode,
+  toggleCompactMode,
   t
 }: {
   settings: any
@@ -117,6 +136,8 @@ function PomodoroAppContent({
   setCurrentView: (v: View) => void
   isAlwaysOnTop: boolean
   toggleAlwaysOnTop: () => void
+  isCompactMode: boolean
+  toggleCompactMode: () => void
   t: any
 }) {
   const navItems = [
@@ -128,54 +149,79 @@ function PomodoroAppContent({
   ]
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-500 ease-in-out" data-mode={isBillable ? "earn" : "immerse"}>
-      <TimerMeta t={t} />
-      {/* Header */}
-      <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-          <h1 className="text-lg font-black text-foreground">{t.appName}</h1>
+    <div
+      className={cn(
+        "min-h-screen transition-colors duration-500 ease-in-out flex flex-col",
+        isCompactMode ? "bg-transparent" : "bg-background"
+      )}
+      data-mode={isBillable ? "earn" : "immerse"}
+    >
+      <MoneyOverlay amount={earnedAmount} show={showMoneyOverlay && !isCompactMode} />
 
-          {/* Mode Toggle */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsBillable(true)}
-              className={cn(
-                "px-3 py-1.5 text-sm rounded-lg transition-all",
-                isBillable ? "bg-gold/20 text-gold font-medium" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.billableMode}
-            </button>
-            <button
-              onClick={() => setIsBillable(false)}
-              className={cn(
-                "px-3 py-1.5 text-sm rounded-lg transition-all",
-                !isBillable ? "bg-green/20 text-green font-medium" : "text-muted-foreground hover:text-foreground",
-              )}
-            >
-              {t.focusMode}
-            </button>
+      {/* Custom Title Bar (Standard Mode Only) */}
+      {!isCompactMode && <TitleBar />}
 
-            {/* Always on Top Toggle (Electron Only) */}
-            {(typeof window !== 'undefined' && (window as any).electron) && (
+      {/* Header (Standard Mode Only) */}
+      {!isCompactMode && (
+        <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
+          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+            <h1 className="text-lg font-black text-foreground">{t.appName}</h1>
+
+            {/* Mode Toggle */}
+            <div className="flex items-center gap-2">
               <button
-                onClick={toggleAlwaysOnTop}
+                onClick={() => setIsBillable(true)}
                 className={cn(
-                  "p-2 rounded-lg transition-all ml-2",
-                  isAlwaysOnTop
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-muted"
+                  "px-3 py-1.5 text-sm rounded-lg transition-all",
+                  isBillable ? "bg-gold/20 text-gold font-medium" : "text-muted-foreground hover:text-foreground",
                 )}
-                title={t.alwaysOnTop || "Always on Top"}
               >
-                {isAlwaysOnTop ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
+                {t.billableMode}
               </button>
-            )}
-          </div>        </div>
-      </header>
+              <button
+                onClick={() => setIsBillable(false)}
+                className={cn(
+                  "px-3 py-1.5 text-sm rounded-lg transition-all",
+                  !isBillable ? "bg-green/20 text-green font-medium" : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {t.focusMode}
+              </button>
+
+              {/* Always on Top Toggle (Electron Only) */}
+              {(typeof window !== 'undefined' && (window as any).electron) && (
+                <>
+                  <button
+                    onClick={toggleAlwaysOnTop}
+                    className={cn(
+                      "p-2 rounded-lg transition-all ml-2",
+                      isAlwaysOnTop
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-muted"
+                    )}
+                    title={t.alwaysOnTop || "Always on Top"}
+                  >
+                    {isAlwaysOnTop ? <Pin className="w-4 h-4" /> : <PinOff className="w-4 h-4" />}
+                  </button>
+                  <button
+                    onClick={toggleCompactMode}
+                    className="p-2 rounded-lg transition-all ml-2 text-muted-foreground hover:bg-muted"
+                    title={t.compactMode || "Compact Mode"}
+                  >
+                    <Minimize2 className="w-4 h-4" />
+                  </button>
+                </>
+              )}
+            </div>        </div>
+        </header>
+      )}
 
       {/* Main Content */}
-      <main className="max-w-2xl mx-auto px-4 pb-24">
+      <main className={cn(
+        "flex-1",
+        !isCompactMode && "max-w-2xl mx-auto px-4 pb-24 w-full",
+        isCompactMode && "flex items-center justify-center p-4"
+      )}>
         {currentView === "timer" && (
           <TimerView
             settings={settings}
@@ -184,10 +230,12 @@ function PomodoroAppContent({
             sessions={sessions}
             todos={todos}
             t={t}
+            isCompactMode={isCompactMode}
+            toggleCompactMode={toggleCompactMode}
           />
         )}
-        {currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} onSettingsChange={updateSettings} />}
-        {currentView === "history" && (
+        {!isCompactMode && currentView === "stats" && <StatsView sessions={sessions} settings={settings} isBillable={isBillable} t={t} onSettingsChange={updateSettings} />}
+        {!isCompactMode && currentView === "history" && (
           <HistoryView
             sessions={sessions}
             settings={settings}
@@ -196,7 +244,7 @@ function PomodoroAppContent({
             isBillable={isBillable}
           />
         )}
-        {currentView === "todo" && (
+        {!isCompactMode && currentView === "todo" && (
           <TodoView
             todos={todos}
             addTodo={addTodo}
@@ -206,7 +254,7 @@ function PomodoroAppContent({
             t={t}
           />
         )}
-        {currentView === "settings" && (
+        {!isCompactMode && currentView === "settings" && (
           <SettingsView
             settings={settings}
             onSettingsChange={updateSettings}
@@ -216,31 +264,31 @@ function PomodoroAppContent({
         )}
       </main>
 
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-8 left-0 right-0 mx-4 border border-border bg-background/95 backdrop-blur-sm rounded-2xl shadow-lg z-50">
-        <div className="max-w-2xl mx-auto px-4">
-          <div className="flex items-center justify-around h-16">
-            {navItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setCurrentView(item.id)}
-                className={cn(
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-300",
-                  currentView === item.id
-                    ? "text-primary scale-110 opacity-100"
-                    : "text-muted-foreground hover:text-foreground opacity-70 scale-100",
-                )}
-              >
-                <item.icon className="w-5 h-5" />
-                <span className="text-xs">{item.label}</span>
-              </button>
-            ))}
+      {/* Bottom Navigation (Standard Mode Only) */}
+      {!isCompactMode && (
+        <nav className="fixed bottom-8 left-0 right-0 mx-4 border border-border bg-background/95 backdrop-blur-sm rounded-2xl shadow-lg z-50">
+          <div className="max-w-2xl mx-auto px-4">
+            <div className="flex items-center justify-around h-16">
+              {navItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setCurrentView(item.id)}
+                  className={cn(
+                    "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-300",
+                    currentView === item.id
+                      ? "text-primary scale-110 opacity-100"
+                      : "text-muted-foreground hover:text-foreground opacity-70 scale-100",
+                  )}
+                >
+                  <item.icon className="w-5 h-5" />
+                  <span className="text-xs">{item.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
+      )}
 
-      {/* Money Overlay */}
-      {showMoneyOverlay && <MoneyOverlay amount={earnedAmount} />}
     </div>
   )
 }

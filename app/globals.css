@@ -194,9 +194,23 @@
     @apply border-border outline-ring/50;
   }
 
+  html,
   body {
-    @apply bg-background text-foreground transition-colors duration-300;
+    background-color: transparent !important;
   }
+
+  body {
+    @apply text-foreground transition-colors duration-300;
+  }
+}
+
+/* Electron Drag Regions */
+.app-region-drag {
+  -webkit-app-region: drag;
+}
+
+.app-region-no-drag {
+  -webkit-app-region: no-drag;
 }
 
 /* Timer ring animation */

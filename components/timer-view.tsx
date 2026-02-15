@@ -1,6 +1,6 @@
 "use client"
 
-import { Play, Pause, RotateCcw, SkipForward, Check, DollarSign, Zap } from "lucide-react"
+import { Play, Pause, RotateCcw, SkipForward, Check, DollarSign, Zap, Maximize2, Minimize2 } from "lucide-react" // Added icons
 import { cn } from "@/lib/utils"
 import type { Settings, Session } from "@/lib/types"
 import { Button } from "@/components/ui/button"
@@ -22,9 +22,11 @@ interface TimerViewProps {
   sessions: Session[]
   todos: Todo[]
   t: Record<string, string>
+  isCompactMode?: boolean
+  toggleCompactMode?: () => void
 }
 
-export function TimerView({ settings, isBillable, onSessionComplete, sessions, todos, t }: TimerViewProps) {
+export function TimerView({ settings, isBillable, onSessionComplete, sessions, todos, t, isCompactMode = false, toggleCompactMode }: TimerViewProps) {
   const {
     timeLeft,
     progress,
@@ -60,7 +62,12 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
     return `${isOvertime ? "+" : ""}${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`
   }
 
-  const strokeDasharray = 2 * Math.PI * 140
+  const ringRadius = isCompactMode ? 100 : 140
+  const strokeWidth = isCompactMode ? 6 : 8
+  const viewBoxSize = isCompactMode ? 220 : 300
+  const centerValue = viewBoxSize / 2
+
+  const strokeDasharray = 2 * Math.PI * ringRadius
   const strokeDashoffset = strokeDasharray * (1 - progress / 100)
 
 
@@ -80,69 +87,93 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
   const ModeIcon = isBreak ? Check : isBillable ? DollarSign : Zap
 
   return (
-    <div className="flex flex-col items-center justify-center py-6 space-y-8 relative">
-      {/* Background Ambient Glow */}
-      <div
-        className={cn(
-          "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-3xl -z-10 transition-colors duration-1000 opacity-50",
-          glowColor
-        )}
-      />
+    <div className={cn(
+      "flex flex-col items-center justify-center relative",
+      isCompactMode ? "space-y-4 app-region-drag select-none" : "py-6 space-y-8"
+    )}>
 
-      <div className="w-full max-w-xs z-10 space-y-2">
-        {/* Todo Selector */}
-        <Select
-          value={selectedTodoId || "none"}
-          onValueChange={(val) => setSelectedTodoId(val === "none" ? undefined : val)}
-          disabled={isRunning}
-        >
-          <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm">
-            <SelectValue placeholder={t.selectTask} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">{t.noTaskSelected}</SelectItem>
-            {todos.filter(t => !t.completed).map((todo) => (
-              <SelectItem key={todo.id} value={todo.id}>
-                {todo.title}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      {/* Background Ambient Glow (Standard Mode Only) */}
+      {!isCompactMode && (
+        <div
+          className={cn(
+            "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full blur-3xl -z-10 transition-colors duration-1000 opacity-50",
+            glowColor
+          )}
+        />
+      )}
 
-        {/* Project Selector */}
-        <Select
-          value={selectedProjectId || "none"}
-          onValueChange={(val) => setSelectedProjectId(val === "none" ? undefined : val)}
-          disabled={isRunning || (!!selectedTodoId && !!todos.find(t => t.id === selectedTodoId)?.projectId)}
-        >
-          <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm text-xs h-8">
-            <SelectValue placeholder={t.selectProject} />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">{t.noProject}</SelectItem>
-            {projects.map((project) => (
-              <SelectItem key={project.id} value={project.id}>
-                {project.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Inputs (Standard Mode Only) */}
+      {!isCompactMode && (
+        <div className="w-full max-w-xs z-10 space-y-2">
+          {/* Todo Selector */}
+          <Select
+            value={selectedTodoId || "none"}
+            onValueChange={(val) => setSelectedTodoId(val === "none" ? undefined : val)}
+            disabled={isRunning}
+          >
+            <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm">
+              <SelectValue placeholder={t.selectTask} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t.noTaskSelected}</SelectItem>
+              {todos.filter(t => !t.completed).map((todo) => (
+                <SelectItem key={todo.id} value={todo.id}>
+                  {todo.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Project Selector */}
+          <Select
+            value={selectedProjectId || "none"}
+            onValueChange={(val) => setSelectedProjectId(val === "none" ? undefined : val)}
+            disabled={isRunning || (!!selectedTodoId && !!todos.find(t => t.id === selectedTodoId)?.projectId)}
+          >
+            <SelectTrigger className="w-full bg-background/50 backdrop-blur-md border-border/50 shadow-sm text-xs h-8">
+              <SelectValue placeholder={t.selectProject} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">{t.noProject}</SelectItem>
+              {projects.map((project) => (
+                <SelectItem key={project.id} value={project.id}>
+                  {project.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {/* Timer Ring Container */}
-      <div className="relative w-80 h-80">
+      <div className={cn("relative transition-all duration-300", isCompactMode ? "w-48 h-48" : "w-80 h-80")}>
+        {/* Compact Mode Toggle Button (Only visible in Compact Mode for restoring) */}
+        {isCompactMode && (
+          <div className="absolute -top-2 -right-2 z-20 app-region-no-drag">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleCompactMode}
+              className="rounded-full bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-all w-6 h-6"
+              title={t.expand}
+            >
+              <Maximize2 className="w-3 h-3" />
+            </Button>
+          </div>
+        )}
+
         {/* SVG Ring */}
-        <svg className="w-full h-full -rotate-90 drop-shadow-2xl" viewBox="0 0 300 300">
+        <svg className="w-full h-full -rotate-90 drop-shadow-2xl" viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}>
           {/* Background ring */}
-          <circle cx="150" cy="150" r="140" fill="none" stroke="currentColor" strokeWidth="4" className="text-muted/20" />
+          <circle cx={centerValue} cy={centerValue} r={ringRadius} fill="none" stroke="currentColor" strokeWidth={strokeWidth / 2} className="text-muted/20" />
           {/* Progress ring */}
           <circle
-            cx="150"
-            cy="150"
-            r="140"
+            cx={centerValue}
+            cy={centerValue}
+            r={ringRadius}
             fill="none"
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth={strokeWidth}
             strokeLinecap="round"
             className={cn("transition-all duration-1000", ringColor)}
             style={{
@@ -155,21 +186,26 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
 
         {/* Timer Display Information */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          {/* Mode Icon & Label */}
-          <div className={cn(
-            "flex items-center gap-2 mb-2 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/10",
-            isBreak ? "text-muted-foreground" : isOvertime ? "text-purple-500 bg-purple-500/10 border-purple-500/20" : "text-foreground"
-          )}>
-            <ModeIcon className="w-4 h-4" />
-            <span className="text-xs font-semibold uppercase tracking-wider">
-              {isBreak ? t.break : isOvertime ? t.overtime : isBillable ? t.billableMode : t.focusMode}
-            </span>
-          </div>
+          {/* Custom Drag Area for Compact Mode since center is non-interactive usually? No, full container is drag in compact mode */}
+
+          {/* Mode Icon & Label (Simplified for Compact) */}
+          {!isCompactMode && (
+            <div className={cn(
+              "flex items-center gap-2 mb-2 px-3 py-1 rounded-full bg-background/50 backdrop-blur-sm border border-border/10",
+              isBreak ? "text-muted-foreground" : isOvertime ? "text-purple-500 bg-purple-500/10 border-purple-500/20" : "text-foreground"
+            )}>
+              <ModeIcon className="w-4 h-4" />
+              <span className="text-xs font-semibold uppercase tracking-wider">
+                {isBreak ? t.break : isOvertime ? t.overtime : isBillable ? t.billableMode : t.focusMode}
+              </span>
+            </div>
+          )}
 
           {/* Time */}
           <span className={cn(
-            "text-7xl font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm transition-colors duration-300",
-            isOvertime ? "text-purple-500" : "text-foreground"
+            "font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm transition-colors duration-300",
+            isOvertime ? "text-purple-500" : "text-foreground",
+            isCompactMode ? "text-4xl" : "text-7xl"
           )}>
             {formatTime(timeLeft)}
           </span>
@@ -184,23 +220,23 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
                 )}
               >
                 <div className="flex items-center gap-1 text-emerald-500 font-medium">
-                  <span className="text-xl">
+                  <span className={cn("text-xl", isCompactMode && "text-base")}>
                     ¥{currentEarnings.toLocaleString()}
                   </span>
                 </div>
-                {currentProject && (
+                {!isCompactMode && currentProject && (
                   <span className="text-[10px] text-muted-foreground">
                     {currentProject.name} (¥{hourlyRate}/h)
                   </span>
                 )}
               </div>
             )}
-            {!isBillable && !isBreak && (
+            {!isBillable && !isBreak && !isCompactMode && (
               <span className="text-sm text-muted-foreground/50 italic">
                 {t.focusMode}
               </span>
             )}
-            {isBreak && (
+            {isBreak && !isCompactMode && (
               <span className="text-sm text-muted-foreground/50 italic">
                 {t.break}
               </span>
@@ -210,7 +246,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-6 z-10">
+      <div className={cn("flex items-center z-10 app-region-no-drag", isCompactMode ? "gap-4 scale-75" : "gap-6")}>
         <Button
           variant="outline"
           size="icon"

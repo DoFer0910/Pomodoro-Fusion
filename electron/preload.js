@@ -5,4 +5,8 @@ contextBridge.exposeInMainWorld('electron', {
     write: (key, value) => ipcRenderer.invoke('storage:set', key, value),
     remove: (key) => ipcRenderer.invoke('storage:delete', key),
     setAlwaysOnTop: (flag) => ipcRenderer.invoke('window:set-always-on-top', flag),
+    setCompactMode: (isCompact) => ipcRenderer.invoke('window:set-compact-mode', isCompact),
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
 });

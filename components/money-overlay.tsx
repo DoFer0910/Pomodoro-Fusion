@@ -4,10 +4,13 @@ import { useEffect, useState } from "react"
 
 interface MoneyOverlayProps {
   amount: number
+  show?: boolean
 }
 
-export function MoneyOverlay({ amount }: MoneyOverlayProps) {
+export function MoneyOverlay({ amount, show = true }: MoneyOverlayProps) {
   const [particles, setParticles] = useState<{ id: number; x: number; delay: number }[]>([])
+
+  if (!show) return null
 
   useEffect(() => {
     const newParticles = Array.from({ length: 8 }, (_, i) => ({
