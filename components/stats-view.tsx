@@ -398,8 +398,8 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
           </CardContent>
         </Card>
 
-        {/* Calendar Detail (Span 2) */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm h-full">
+        {/* Calendar Detail (Span 4) */}
+        <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm h-full">
           <CardHeader className="pb-4">
             <CardTitle className="text-sm font-medium text-muted-foreground">Daily Details</CardTitle>
           </CardHeader>
@@ -412,14 +412,6 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
               settings={settings}
             />
           </CardContent>
-        </Card>
-
-        {/* Placeholder / Additional Info (Span 2) */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm h-full flex flex-col justify-center items-center text-center p-6 text-muted-foreground">
-          <div className="p-4 rounded-full bg-secondary/50 mb-4">
-            <History className="w-8 h-8 opacity-50" />
-          </div>
-          <p className="text-sm">Check the History tab for a detailed log of all your sessions.</p>
         </Card>
 
       </div>
