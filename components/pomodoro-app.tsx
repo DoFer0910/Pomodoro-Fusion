@@ -113,7 +113,7 @@ function PomodoroAppContent({
   ]
 
   return (
-    <div className="min-h-screen bg-background" data-mode={isBillable ? "earn" : "immerse"}>
+    <div className="min-h-screen bg-background transition-colors duration-500 ease-in-out" data-mode={isBillable ? "earn" : "immerse"}>
       <TimerMeta t={t} />
       {/* Header */}
       <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
@@ -187,7 +187,7 @@ function PomodoroAppContent({
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-border bg-background/95 backdrop-blur-sm">
+      <nav className="fixed bottom-8 left-0 right-0 mx-4 border border-border bg-background/95 backdrop-blur-sm rounded-2xl shadow-lg z-50">
         <div className="max-w-2xl mx-auto px-4">
           <div className="flex items-center justify-around h-16">
             {navItems.map((item) => (
@@ -195,8 +195,10 @@ function PomodoroAppContent({
                 key={item.id}
                 onClick={() => setCurrentView(item.id)}
                 className={cn(
-                  "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all",
-                  currentView === item.id ? "text-primary" : "text-muted-foreground hover:text-foreground",
+                  "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-300",
+                  currentView === item.id
+                    ? "text-primary scale-110 opacity-100"
+                    : "text-muted-foreground hover:text-foreground opacity-70 scale-100",
                 )}
               >
                 <item.icon className="w-5 h-5" />
