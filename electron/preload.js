@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('electron', {
     setCompactMode: (isCompact) => ipcRenderer.invoke('window:set-compact-mode', isCompact),
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
+    setBounds: (bounds) => ipcRenderer.invoke('window:set-bounds', bounds),
     close: () => ipcRenderer.invoke('window:close'),
 });

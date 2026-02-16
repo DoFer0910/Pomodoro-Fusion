@@ -32,20 +32,35 @@ export function usePomodoro() {
     }, [])
 
     const addSession = useCallback(
-        async (duration: number, status: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => {
+        async (
+            duration: number,
+            status: "completed" | "interrupted",
+            todoId?: string,
+            todoTitle?: string,
+            projectId?: string,
+            customTimestamp?: number,
+            customIsBillable?: boolean
+        ) => {
+            const timestamp = customTimestamp || Date.now()
+            const sessionIsBillable = customIsBillable !== undefined ? customIsBillable : isBillable
+
             const session: Session = {
                 id: crypto.randomUUID(),
-                timestamp: Date.now(),
+                timestamp,
                 duration,
                 status,
-                isBillable,
+                isBillable: sessionIsBillable,
                 todoId,
                 todoTitle,
                 projectId,
             }
 
             // Optimistic update
-            setSessions(prev => [session, ...prev])
+            setSessions(prev => {
+                const newSessions = [session, ...prev]
+                // Sort by timestamp descending to keep order correct
+                return newSessions.sort((a, b) => b.timestamp - a.timestamp)
+            })
 
             await persistSession(session)
             // Re-fetch to ensure consistency (optional, but good for id/timestamp if generated server-side, here client-side so maybe redundant but safe)
@@ -65,7 +80,10 @@ export function usePomodoro() {
             // If I remove it, I might desync if persist fails (unlikely).
             // I'll remove `setSessions(await getSessions())` and trust `setSessions(prev => ...)` is enough for now.
 
-            if (isBillable) {
+            // Only trigger overlay/earnings update if it's a "live" session (no custom timestamp)
+            // Or maybe we WANT to see the overlay? User might find it annoying if bulk adding.
+            // Let's only show overlay if it's a real-time completion (customTimestamp is undefined)
+            if (sessionIsBillable && !customTimestamp) {
                 let rate = settings.defaultHourlyRate
                 if (projectId) {
                     const projects = await getProjects()
@@ -100,6 +118,30 @@ export function usePomodoro() {
         [sessions],
     )
 
+    const updateSession = useCallback(
+        async (
+            id: string,
+            updates: {
+                duration: number
+                projectId?: string
+                timestamp: number
+                isBillable: boolean,
+                status: "completed" | "interrupted"
+            }
+        ) => {
+            const newSessions = sessions.map(s => {
+                if (s.id === id) {
+                    return { ...s, ...updates }
+                }
+                return s
+            }).sort((a, b) => b.timestamp - a.timestamp)
+
+            setSessions(newSessions)
+            await persistSessions(newSessions)
+        },
+        [sessions]
+    )
+
     return {
         settings,
         sessions,
@@ -110,6 +152,7 @@ export function usePomodoro() {
         deleteSessions,
         mounted,
         earnedAmount,
-        showMoneyOverlay
+        showMoneyOverlay,
+        updateSession
     }
 }

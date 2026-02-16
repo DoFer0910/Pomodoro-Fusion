@@ -26,6 +26,7 @@ export function PomodoroApp() {
     setIsBillable,
     updateSettings,
     addSession,
+    updateSession,
     deleteSessions,
     mounted,
     earnedAmount,
@@ -83,6 +84,7 @@ export function PomodoroApp() {
         setIsBillable={setIsBillable}
         updateSettings={updateSettings}
         addSession={addSession}
+        updateSession={updateSession}
         deleteSessions={deleteSessions}
         todos={todos}
         addTodo={addTodo}
@@ -105,6 +107,7 @@ export function PomodoroApp() {
 }
 
 import { TitleBar } from "./title-bar"
+import { ResizeBorders } from "./resize-borders"
 
 // Extract content to separate component to keep main clear and because we might want to access context here later
 function PomodoroAppContent({
@@ -114,6 +117,7 @@ function PomodoroAppContent({
   setIsBillable,
   updateSettings,
   addSession,
+  updateSession,
   deleteSessions,
   todos,
   addTodo,
@@ -136,7 +140,8 @@ function PomodoroAppContent({
   isBillable: boolean
   setIsBillable: (v: boolean) => void
   updateSettings: (s: any) => void
-  addSession: (d: number, s: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string) => void
+  addSession: (d: number, s: "completed" | "interrupted", todoId?: string, todoTitle?: string, projectId?: string, customTimestamp?: number, customIsBillable?: boolean) => void
+  updateSession: (id: string, updates: any) => void
   deleteSessions: (ids: string[]) => void
   todos: any[]
   addTodo: (t: string) => void
@@ -182,12 +187,19 @@ function PomodoroAppContent({
     >
       <MoneyOverlay amount={earnedAmount} show={showMoneyOverlay && !isCompactMode} />
 
+      {/* Manual Resize Borders (Standard Mode Only) */}
+      <ResizeBorders enabled={!isCompactMode} />
+
       {/* Custom Title Bar (Standard Mode Only) */}
-      {!isCompactMode && <TitleBar />}
+      {!isCompactMode && (
+        <div className="sticky top-0 z-50 w-full">
+          <TitleBar />
+        </div>
+      )}
 
       {/* Header (Standard Mode Only) */}
       {!isCompactMode && (
-        <header className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
+        <header className="sticky top-8 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <h1 className="text-lg font-black text-foreground">{t.appName}</h1>
 
@@ -265,6 +277,8 @@ function PomodoroAppContent({
             onDeleteSessions={deleteSessions}
             t={t}
             isBillable={isBillable}
+            addSession={addSession}
+            updateSession={updateSession}
           />
         )}
         {!isCompactMode && currentView === "todo" && (

@@ -25,6 +25,7 @@ function createWindow() {
             contextIsolation: true,
         },
         autoHideMenuBar: true,
+        resizable: true, // Allow resizing by default (Standard Mode)
     });
 
     const isDev = process.env.ELECTRON_IS_DEV === '1';
@@ -95,11 +96,13 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
 
     if (isCompact) {
         mainWindow.setSize(300, 300);
+        mainWindow.setResizable(false); // Disable resizing in compact mode
         mainWindow.setAlwaysOnTop(true, 'screen-saver');
         // Force transparency update
         mainWindow.setBackgroundColor('#00000000');
     } else {
         mainWindow.setSize(1200, 800);
+        mainWindow.setResizable(true); // Enable resizing in standard mode
         mainWindow.center();
         // Reset to transparent so standard view can handle its own background via CSS
         mainWindow.setBackgroundColor('#00000000');
@@ -113,8 +116,17 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
             }
+            if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
+            }
         }, 100);
     }
+});
+
+// Manual Resizing IPC for Transparent Windows
+ipcMain.handle('window:set-bounds', async (event, bounds) => {
+    if (!mainWindow) return;
+    mainWindow.setBounds(bounds);
 });
 
 ipcMain.handle('window:minimize', async () => {

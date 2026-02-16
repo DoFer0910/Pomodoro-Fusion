@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react"
 
 import { Todo } from "@/lib/types"
-import { getStorage } from "@/lib/storage/adapter"
-
-const TODOS_KEY = "pomodoro-todos"
+import { getTodos, saveTodos } from "@/lib/storage"
 
 export function useTodo() {
     const [todos, setTodos] = useState<Todo[]>([])
@@ -15,8 +13,7 @@ export function useTodo() {
     useEffect(() => {
         setMounted(true)
         const load = async () => {
-            const storage = getStorage()
-            const stored = await storage.get<Todo[]>(TODOS_KEY)
+            const stored = await getTodos()
             if (stored) {
                 setTodos(stored)
             }
@@ -27,8 +24,7 @@ export function useTodo() {
     useEffect(() => {
         if (mounted) {
             const save = async () => {
-                const storage = getStorage()
-                await storage.set(TODOS_KEY, todos)
+                await saveTodos(todos)
             }
             save()
         }

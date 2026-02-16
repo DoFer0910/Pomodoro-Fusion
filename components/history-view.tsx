@@ -1,24 +1,30 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Trash2, CheckSquare, Square, ChevronLeft, ChevronRight } from "lucide-react"
+import { Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Plus, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Session, Settings } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useProjects } from "@/hooks/use-projects"
+import { ManualEntryDialog } from "./manual-entry-dialog"
+import { EditSessionDialog } from "./edit-session-dialog"
 
 interface HistoryViewProps {
   sessions: Session[]
   settings: Settings
   onDeleteSessions: (ids: string[]) => void
+  addSession: (duration: number, status: "completed", todoId: undefined, todoTitle: undefined, projectId: string | undefined, customTimestamp: number, customIsBillable: boolean) => void
+  updateSession: (id: string, updates: any) => void
   t: Record<string, string>
   isBillable: boolean
 }
 
-export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillable }: HistoryViewProps) {
+export function HistoryView({ sessions, settings, onDeleteSessions, addSession, updateSession, t, isBillable }: HistoryViewProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [currentPage, setCurrentPage] = useState(1)
+  const [isManualEntryOpen, setIsManualEntryOpen] = useState(false)
+  const [editingSession, setEditingSession] = useState<Session | null>(null)
   const itemsPerPage = 10
   const maxItems = 100
   const { projects } = useProjects()
@@ -111,7 +117,13 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
   return (
     <div className="py-6 space-y-4 h-[calc(100vh-120px)] flex flex-col">
       <div className="flex items-center justify-between shrink-0">
-        <h2 className="text-xl font-semibold text-foreground">{t.history}</h2>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl font-semibold text-foreground">{t.history}</h2>
+          <Button variant="outline" size="sm" onClick={() => setIsManualEntryOpen(true)} className="gap-1 h-8">
+            <Plus className="w-4 h-4" />
+            {t.addSession || "Add"}
+          </Button>
+        </div>
 
         {paginatedSessions.length > 0 && (
           <div className="flex items-center gap-2">
@@ -133,6 +145,21 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
           </div>
         )}
       </div>
+
+      <ManualEntryDialog
+        open={isManualEntryOpen}
+        onOpenChange={setIsManualEntryOpen}
+        onAddSession={addSession}
+        t={t}
+      />
+
+      <EditSessionDialog
+        open={!!editingSession}
+        onOpenChange={(open) => !open && setEditingSession(null)}
+        session={editingSession}
+        onUpdateSession={updateSession}
+        t={t}
+      />
 
       {paginatedSessions.length === 0 ? (
         <Card className="bg-card border-border">
@@ -212,14 +239,24 @@ export function HistoryView({ sessions, settings, onDeleteSessions, t, isBillabl
                     </div>
                   </div>
 
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => onDeleteSessions([session.id])}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-destructive h-8 w-8"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setEditingSession(session)}
+                      className="text-muted-foreground hover:text-primary h-8 w-8"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDeleteSessions([session.id])}
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               )
             })}

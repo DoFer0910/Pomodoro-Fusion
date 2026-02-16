@@ -1,21 +1,23 @@
-import { type Session, type Settings, DEFAULT_SETTINGS, type Project } from "./types"
-import { getSessions, getSettings, saveSessions, saveSettings, getProjects, saveProjects } from "./storage"
+import { type Session, type Settings, DEFAULT_SETTINGS, type Project, type Todo } from "./types"
+import { getSessions, getSettings, saveSessions, saveSettings, getProjects, saveProjects, getTodos, saveTodos } from "./storage"
 
 export interface AppData {
     settings: Settings
     sessions: Session[]
     projects: Project[]
+    todos: Todo[]
     version: number
     exportedAt: number
 }
 
-const CURRENT_VERSION = 1
+const CURRENT_VERSION = 2
 
 export async function exportData(): Promise<string> {
     const data: AppData = {
         settings: await getSettings(),
         sessions: await getSessions(),
         projects: await getProjects(),
+        todos: await getTodos(),
         version: CURRENT_VERSION,
         exportedAt: Date.now(),
     }
@@ -39,6 +41,9 @@ export async function importData(jsonString: string): Promise<{ success: boolean
         await saveSessions(data.sessions)
         if (data.projects && Array.isArray(data.projects)) {
             await saveProjects(data.projects)
+        }
+        if (data.todos && Array.isArray(data.todos)) {
+            await saveTodos(data.todos)
         }
 
         return { success: true }

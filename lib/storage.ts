@@ -1,4 +1,4 @@
-import { type Session, type Settings, DEFAULT_SETTINGS, type Project } from "./types"
+import { type Session, type Settings, DEFAULT_SETTINGS, type Project, type Todo } from "./types"
 import { getStorage } from "./storage/adapter"
 
 const SESSIONS_KEY = "pomodoro-sessions"
@@ -15,6 +15,17 @@ export async function getSessions(): Promise<Session[]> {
 export async function saveSessions(sessions: Session[]): Promise<void> {
   const storage = getStorage()
   await storage.set(SESSIONS_KEY, sessions)
+}
+
+export async function getTodos(): Promise<Todo[]> {
+  const storage = getStorage()
+  const data = await storage.get<Todo[]>(TODOS_KEY)
+  return data || []
+}
+
+export async function saveTodos(todos: Todo[]): Promise<void> {
+  const storage = getStorage()
+  await storage.set(TODOS_KEY, todos)
 }
 
 export async function addSession(session: Session): Promise<void> {
