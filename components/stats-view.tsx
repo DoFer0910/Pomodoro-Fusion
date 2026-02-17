@@ -367,6 +367,8 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
                         outerRadius={80}
                         paddingAngle={2}
                         dataKey={isBillable ? "earnings" : "duration"}
+                        startAngle={90}
+                        endAngle={-270}
                       >
                         {monthlyStats.projectStats.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} stroke="transparent" />

@@ -167,7 +167,7 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
                                 )}
                             >
                                 {/* Task Name Column */}
-                                <div className="col-span-8 flex items-center gap-3 w-full">
+                                <div className="col-span-8 flex items-start gap-3 w-full">
                                     <button
                                         onClick={() => toggleTodo(todo.id)}
                                         className={cn(
@@ -182,7 +182,7 @@ export function TodoView({ todos, addTodo, toggleTodo, deleteTodo, error, t }: T
                                         )}
                                     </button>
                                     <span className={cn(
-                                        "text-sm text-foreground truncate",
+                                        "text-sm text-foreground break-words",
                                         todo.completed && "line-through text-muted-foreground"
                                     )}>
                                         {todo.title}
