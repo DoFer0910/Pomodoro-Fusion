@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
@@ -202,6 +202,17 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     const mins = Math.floor((seconds % 3600) / 60)
     if (hours > 0) return `${hours}${t.hours} ${mins}${t.minutes}`
     return `${mins}${t.minutes}`
+  }
+
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return null
   }
 
   return (

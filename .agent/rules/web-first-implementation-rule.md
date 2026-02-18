@@ -2,25 +2,23 @@
 trigger: always_on
 ---
 
-# Development Workflow: Web Version First Implementation Rule
+# 開発ワークフロー：Web版優先実装ルール
 
-## 1. Basic Policy
-Implementation and functional verification of new features shall, as a rule, be **prioritized for the Web app version (Next.js)**. The desktop app version (Electron) will follow the procedure of reflecting and building the results after the feature is finalized in the Web version.
+## 1. 基本方針
+新機能の実装および機能検証は、原則として**Webアプリ版（Next.js）を最優先**します。デスクトップアプリ版（Electron）の実装は、Web版で機能が確定した後に、その成果を反映・ビルドする手順で行います。
 
-## 2. Reasons for Applying This Rule
-- **Reliable Verification**: In the Google Antigravity environment, verifying behavior specific to the desktop app can be difficult or unstable.
-- **Simplified Troubleshooting**: To clearly identify whether issues stem from logic problems (common to the web) or environment/packaging problems (specific to Electron).
-- **Development Speed**: It is more efficient to complete development entirely in the web version, where HMR (Hot Module Replacement) and browser debugging tools can be fully utilized.
+## 2. 本ルール適用の理由
+- **確実な検証**: Google Antigravity環境において、デスクトップアプリ特有の挙動を検証することは困難、あるいは不安定になる可能性があるためです。
+- **トラブルシューティングの簡素化**: 発生した問題がロジック起因（Web共通の問題）なのか、それとも環境やパッケージング起因（Electron固有の問題）なのかを明確に切り分けるためです。
+- **開発スピードの向上**: HMR（ホットモジュールリプレースメント）やブラウザのデバッグツールをフル活用できるWeb版で開発を完結させる方が、効率的に進められます。
 
-## 3. Implementation Procedure (Standard Procedure)
-1. **Implementation in the Web Version**: Implement new features in the web environment using commands like `npm run dev`.
-2. **Verify in Web Version**: Confirm perfect behavior in the browser (e.g., Pomodoro timer functionality, UI responsiveness).
-3. **Deploy to Desktop Version**:
-   - Integrate the web version code into the desktop environment.
-   - Run `npm run dev:electron` to check for desktop-specific display issues.
-4. **Build Verification**: Finally, verify that the installer generates correctly using `npm run build:electron`.
+## 3. 実装手順（標準手順）
+1. **Web版での実装**: `npm run dev` などのコマンドを使用し、Web環境で新機能を実装します。
+2. **Web版での検証**: ブラウザ上で動作（ポモドーロタイマーの機能、UIのレスポンシブ対応など）が完璧であることを確認します。
+3. **デスクトップ版への展開**:
+   - Web版のコードをデスクトップ環境に統合します。
+   - `npm run dev:electron` を実行し、デスクトップ特有の表示崩れなどがないかチェックします。
+4. **ビルド検証**: 最後に `npm run build:electron` を実行し、インストーラーが正しく生成されることを確認します。
 
-## 4. Important Notes
-- When using Node.js-specific APIs (e.g., file system operations), create mocks (dummy implementations) in the web version to prevent errors. Replace these with the actual implementation during Electron integration.
-*** Translated with www.DeepL.com/Translator (free version) ***
-
+## 4. 注意事項
+- Node.js固有のAPI（ファイルシステム操作など）を使用する場合、Web版でエラーが出ないよう「モック（ダミーの実装）」を作成してください。Electronへの統合時に、それらを実際の実装に置き換えます。

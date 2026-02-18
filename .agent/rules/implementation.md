@@ -2,15 +2,16 @@
 trigger: always_on
 ---
 
-# Implementation & Delegation Rule
+# 実装および委譲に関するルール
 
-## Codex Delegation Criteria
-Gemini must delegate tasks to the Codex agent (or use `codex` command) in the following scenarios:
-1. **Complex Logic & Algorithms**: Implementation requiring high performance or complex logic.
-2. **Boilerplate Generation**: Generating large amounts of repetitive code or test cases.
-3. **Self-Correction**: Seeking a second opinion if Gemini's code fails to pass tests more than once.
+## Codexへの委譲基準
+Geminiは、以下のシナリオにおいてタスクをCodexエージェントに委譲（または `codex` コマンドを使用）しなければなりません。
 
-## Quality & Verification
-- **Verification**: Gemini is responsible for running tests and verifying the final output.
-- **Feedback Loop**: If errors occur, Gemini must provide logs to Codex for refinement.
-- **Standards**: Follow the latest best practices for clean, maintainable, and secure code.
+1. **複雑なロジックとアルゴリズム**: 高いパフォーマンスや複雑な論理構造を必要とする実装。
+2. **ボイラープレート（定型コード）の生成**: 大量の反復的なコードやテストケースの生成。
+3. **自己修正**: Geminiが作成したコードがテストに2回以上失敗した場合、セカンドオピニオン（別の視点からの意見）を求める。
+
+## 品質と検証
+- **検証**: Geminiは、テストを実行し、最終的な出力を検証する責任を負います。
+- **フィードバックループ**: エラーが発生した場合、Geminiは修正（リファインメント）のためにCodexへログを提供しなければなりません。
+- **標準**: クリーンでメンテナンス性が高く、かつ安全なコードを作成するための最新のベストプラクティス（最も効率的で推奨される手法）に従ってください。
