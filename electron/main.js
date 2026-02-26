@@ -104,13 +104,13 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
         // Force transparency update
         mainWindow.setBackgroundColor('#00000000');
     } else {
+        mainWindow.setResizable(true); // Enable resizing in standard mode BEFORE setting bounds
         if (preCompactBounds) {
             mainWindow.setBounds(preCompactBounds);
         } else {
             mainWindow.setSize(1200, 800);
             mainWindow.center();
         }
-        mainWindow.setResizable(true); // Enable resizing in standard mode
         // Reset to transparent so standard view can handle its own background via CSS
         mainWindow.setBackgroundColor('#00000000');
 
