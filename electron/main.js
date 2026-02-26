@@ -90,20 +90,27 @@ ipcMain.handle('window:set-always-on-top', async (event, flag) => {
     }
 });
 
+let preCompactBounds = null;
+
 // Window Management IPC Handlers
 ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlwaysOnTop) => {
     if (!mainWindow) return;
 
     if (isCompact) {
+        preCompactBounds = mainWindow.getBounds();
         mainWindow.setSize(300, 300);
         mainWindow.setResizable(false); // Disable resizing in compact mode
         mainWindow.setAlwaysOnTop(true, 'screen-saver');
         // Force transparency update
         mainWindow.setBackgroundColor('#00000000');
     } else {
-        mainWindow.setSize(1200, 800);
+        if (preCompactBounds) {
+            mainWindow.setBounds(preCompactBounds);
+        } else {
+            mainWindow.setSize(1200, 800);
+            mainWindow.center();
+        }
         mainWindow.setResizable(true); // Enable resizing in standard mode
-        mainWindow.center();
         // Reset to transparent so standard view can handle its own background via CSS
         mainWindow.setBackgroundColor('#00000000');
 
@@ -113,9 +120,6 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
         // Windows quirk: setAlwaysOnTop might fail if called immediately after geometry changes
         // Use a small timeout to ensure it applies correctly
         setTimeout(() => {
-            if (mainWindow && !mainWindow.isDestroyed()) {
-                mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
-            }
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
             }
