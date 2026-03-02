@@ -90,7 +90,9 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
   return (
     <div className={cn(
       "flex flex-col items-center justify-center relative transition-all duration-300",
-      isCompactMode ? "space-y-4 app-region-drag select-none scale-90" : "py-6 space-y-8 scale-100"
+      isCompactMode
+        ? "space-y-4 app-region-drag select-none scale-90 bg-background/60 backdrop-blur-md rounded-[2.5rem] p-6 shadow-2xl border border-border/20"
+        : "py-6 space-y-8 scale-100"
     )}>
       {/* Compact Mode Toggle (Standard Mode) */}
       {!isCompactMode && (
@@ -169,7 +171,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
               variant="ghost"
               size="icon"
               onClick={toggleCompactMode}
-              className="rounded-full bg-background/20 hover:bg-background/50 backdrop-blur-sm text-muted-foreground hover:text-foreground transition-all w-8 h-8"
+              className="rounded-full bg-background/60 hover:bg-background/80 backdrop-blur-md border border-border/20 text-muted-foreground hover:text-foreground transition-all w-8 h-8 shadow-sm"
               title={t.expand}
             >
               <Maximize2 className="w-4 h-4" />
@@ -218,9 +220,9 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
 
           {/* Time */}
           <span className={cn(
-            "font-mono font-bold tabular-nums tracking-tighter drop-shadow-sm transition-colors duration-300",
+            "font-mono font-bold tabular-nums tracking-tighter transition-colors duration-300",
             isOvertime ? "text-purple-500" : "text-foreground",
-            isCompactMode ? "text-4xl" : "text-7xl"
+            isCompactMode ? "text-4xl drop-shadow-md" : "text-7xl drop-shadow-sm"
           )}>
             {formatTime(timeLeft)}
           </span>

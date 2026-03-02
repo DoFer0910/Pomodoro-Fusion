@@ -51,24 +51,29 @@ export function PomodoroApp() {
   const prevAlwaysOnTopRef = useRef(false)
 
   const toggleCompactMode = async () => {
+    const newState = !isCompactMode
+
+    // Update UI state immediately for responsiveness
+    setIsCompactMode(newState)
+
+    if (newState) {
+      // Entering compact mode
+      prevAlwaysOnTopRef.current = isAlwaysOnTop // Store current state
+      setIsAlwaysOnTop(true)
+      setCurrentView("timer") // Force switch to timer view
+    } else {
+      // Exiting compact mode
+      const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
+      setIsAlwaysOnTop(shouldRestoreAlwaysOnTop)
+    }
+
     if (typeof window !== 'undefined' && (window as any).electron) {
-      const newState = !isCompactMode
-
-      // Update UI state immediately for responsiveness
-      setIsCompactMode(newState)
-
       if (newState) {
-        // Entering compact mode
-        prevAlwaysOnTopRef.current = isAlwaysOnTop // Store current state
-        setIsAlwaysOnTop(true)
-        setCurrentView("timer") // Force switch to timer view
         // Notify main process to enter compact mode
         await (window as any).electron.setCompactMode(true)
       } else {
-        // Exiting compact mode
-        const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
-        setIsAlwaysOnTop(shouldRestoreAlwaysOnTop)
         // Notify main process to exit compact mode and restore always on top
+        const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
         await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
       }
     }
