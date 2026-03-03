@@ -236,7 +236,7 @@ function PomodoroAppContent({
               </button>
 
               {/* Always on Top Toggle (Electron Only) */}
-              {(typeof window !== 'undefined' && (window as any).electron) && (
+              {(mounted && typeof window !== 'undefined' && (window as any).electron) && (
                 <>
                   <button
                     onClick={toggleAlwaysOnTop}
