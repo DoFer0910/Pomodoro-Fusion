@@ -98,34 +98,22 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
 
     if (isCompact) {
         preCompactBounds = mainWindow.getBounds();
-        // setBoundsで統一し、位置を保持しつつサイズを変更
-        const currentBounds = mainWindow.getBounds();
-        mainWindow.setBounds({
-            x: currentBounds.x,
-            y: currentBounds.y,
-            width: 300,
-            height: 300,
-        });
-        // コンテンツサイズを明示的に設定し、ヒットテスト領域を強制更新
-        mainWindow.setContentSize(300, 300);
-        mainWindow.setResizable(false); // コンパクトモードではリサイズ無効
+        // 現在の位置を保持しつつサイズを変更（setBoundsで統一）
+        const { x, y } = mainWindow.getBounds();
+        mainWindow.setBounds({ x, y, width: 300, height: 300 });
+        mainWindow.setResizable(false);
         mainWindow.setAlwaysOnTop(true, 'screen-saver');
     } else {
-        mainWindow.setResizable(true); // リサイズを先に有効化
+        mainWindow.setResizable(true);
         if (preCompactBounds) {
             mainWindow.setBounds(preCompactBounds);
-            // コンテンツサイズも復元して当たり判定を正確に更新
-            mainWindow.setContentSize(preCompactBounds.width, preCompactBounds.height);
         } else {
-            mainWindow.setBounds({ x: 0, y: 0, width: 1200, height: 800 });
-            mainWindow.setContentSize(1200, 800);
+            mainWindow.setSize(1200, 800);
             mainWindow.center();
         }
-        preCompactBounds = null; // 使用済みバウンドをクリア
+        preCompactBounds = null;
 
-        // Always on top の状態を復元
         const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
-
         // Windowsでは geometry 変更直後の setAlwaysOnTop が効かない場合があるため遅延実行
         setTimeout(() => {
             if (mainWindow && !mainWindow.isDestroyed()) {
