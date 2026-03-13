@@ -98,27 +98,35 @@ ipcMain.handle('window:set-compact-mode', async (event, isCompact, restoreAlways
 
     if (isCompact) {
         preCompactBounds = mainWindow.getBounds();
-        mainWindow.setSize(300, 300);
-        mainWindow.setResizable(false); // Disable resizing in compact mode
+        // setBoundsで統一し、位置を保持しつつサイズを変更
+        const currentBounds = mainWindow.getBounds();
+        mainWindow.setBounds({
+            x: currentBounds.x,
+            y: currentBounds.y,
+            width: 300,
+            height: 300,
+        });
+        // コンテンツサイズを明示的に設定し、ヒットテスト領域を強制更新
+        mainWindow.setContentSize(300, 300);
+        mainWindow.setResizable(false); // コンパクトモードではリサイズ無効
         mainWindow.setAlwaysOnTop(true, 'screen-saver');
-        // Force transparency update
-        mainWindow.setBackgroundColor('#00000000');
     } else {
-        mainWindow.setResizable(true); // Enable resizing in standard mode BEFORE setting bounds
+        mainWindow.setResizable(true); // リサイズを先に有効化
         if (preCompactBounds) {
             mainWindow.setBounds(preCompactBounds);
+            // コンテンツサイズも復元して当たり判定を正確に更新
+            mainWindow.setContentSize(preCompactBounds.width, preCompactBounds.height);
         } else {
-            mainWindow.setSize(1200, 800);
+            mainWindow.setBounds({ x: 0, y: 0, width: 1200, height: 800 });
+            mainWindow.setContentSize(1200, 800);
             mainWindow.center();
         }
-        // Reset to transparent so standard view can handle its own background via CSS
-        mainWindow.setBackgroundColor('#00000000');
+        preCompactBounds = null; // 使用済みバウンドをクリア
 
-        // Restore always on top state to ensure it's applied after geometry changes
+        // Always on top の状態を復元
         const alwaysOnTop = restoreAlwaysOnTop !== undefined ? restoreAlwaysOnTop : false;
 
-        // Windows quirk: setAlwaysOnTop might fail if called immediately after geometry changes
-        // Use a small timeout to ensure it applies correctly
+        // Windowsでは geometry 変更直後の setAlwaysOnTop が効かない場合があるため遅延実行
         setTimeout(() => {
             if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.setAlwaysOnTop(alwaysOnTop, 'screen-saver');
