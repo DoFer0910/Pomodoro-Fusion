@@ -36,7 +36,7 @@ class ElectronStorageAdapter implements StorageAdapter {
 
     async delete(key: string): Promise<void> {
         // @ts-ignore
-        await window.electron.delete(key);
+        await window.electron.remove(key);
     }
 }
 

@@ -52,29 +52,37 @@ export function PomodoroApp() {
 
   const toggleCompactMode = async () => {
     const newState = !isCompactMode
+    const prevAlwaysOnTop = isAlwaysOnTop
 
-    // Update UI state immediately for responsiveness
+    // UI状態を即座に更新（レスポンシブ性のため）
     setIsCompactMode(newState)
 
     if (newState) {
-      // Entering compact mode
-      prevAlwaysOnTopRef.current = isAlwaysOnTop // Store current state
+      // コンパクトモードへ移行
+      prevAlwaysOnTopRef.current = isAlwaysOnTop
       setIsAlwaysOnTop(true)
-      setCurrentView("timer") // Force switch to timer view
+      setCurrentView("timer")
     } else {
-      // Exiting compact mode
+      // 通常モードへ復帰
       const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
       setIsAlwaysOnTop(shouldRestoreAlwaysOnTop)
     }
 
     if (typeof window !== 'undefined' && (window as any).electron) {
-      if (newState) {
-        // Notify main process to enter compact mode
-        await (window as any).electron.setCompactMode(true)
-      } else {
-        // Notify main process to exit compact mode and restore always on top
-        const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
-        await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
+      try {
+        if (newState) {
+          // メインプロセスにコンパクトモードへの移行を通知
+          await (window as any).electron.setCompactMode(true)
+        } else {
+          // メインプロセスにコンパクトモード解除とAlwaysOnTop復元を通知
+          const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
+          await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
+        }
+      } catch (err) {
+        // Electron API呼び出し失敗時にUI状態をロールバック
+        console.error("[toggleCompactMode] Electron API エラー:", err)
+        setIsCompactMode(!newState)
+        setIsAlwaysOnTop(prevAlwaysOnTop)
       }
     }
   }
