@@ -470,12 +470,28 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
                       tickFormatter={(value) => `¥${value.toLocaleString()}`}
                     />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--popover)', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      labelStyle={{ color: 'var(--muted-foreground)', marginBottom: '4px' }}
-                      itemStyle={{ color: 'var(--foreground)' }}
-                      formatter={(value: number) => [`¥${value.toLocaleString()}`, "Earnings"]}
-                      labelFormatter={(label) => `${selectedDate.getMonth() + 1}/${label}`}
                       cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload
+                          return (
+                            <div className="bg-popover border border-border rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.1)] p-3 text-sm">
+                              <p className="text-muted-foreground mb-1.5">{`${selectedDate.getMonth() + 1}/${label}`}</p>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                                  <span className="text-foreground">Earnings: ¥{Math.round(data.earnings).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-muted-foreground shrink-0" />
+                                  <span className="text-foreground">Time: {formatDuration(data.duration)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
                     />
                     <Area
                       type="monotone"
