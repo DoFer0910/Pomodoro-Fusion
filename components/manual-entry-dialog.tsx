@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { useProjects } from "@/hooks/use-projects"
-import { format } from "date-fns"
+import { format, addMinutes, differenceInMinutes, parse } from "date-fns"
 
 interface ManualEntryDialogProps {
     open: boolean
@@ -33,13 +33,15 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
     const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"))
     const [startTime, setStartTime] = useState("10:00")
     const [endTime, setEndTime] = useState("11:00")
+    const [durationHours, setDurationHours] = useState("1")
+    const [durationMinutes, setDurationMinutes] = useState("0")
     const [isBillable, setIsBillable] = useState(true)
 
     // Validation State
     const [error, setError] = useState<string | null>(null)
 
-    // Calculated Duration Display
-    const [durationDisplay, setDurationDisplay] = useState("")
+    // To prevent infinite loops during sync
+    const [lastEditedField, setLastEditedField] = useState<"time" | "duration">("time")
 
     useEffect(() => {
         if (open) {
@@ -48,35 +50,52 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
             setDate(format(new Date(), "yyyy-MM-dd"))
             setStartTime("10:00")
             setEndTime("11:00")
+            setDurationHours("1")
+            setDurationMinutes("0")
             setIsBillable(true)
             setError(null)
+            setLastEditedField("time")
         }
     }, [open])
 
-    // Calculate duration whenever times change
+    // Sync logic: Times -> Duration
     useEffect(() => {
-        if (!startTime || !endTime) {
-            setDurationDisplay("")
-            return
-        }
+        if (lastEditedField !== "time" || !startTime || !endTime) return
 
-        const start = new Date(`2000-01-01T${startTime}`)
-        const end = new Date(`2000-01-01T${endTime}`)
+        const start = parse(startTime, "HH:mm", new Date())
+        const end = parse(endTime, "HH:mm", new Date())
 
-        // Handle overnight logic simply for now: if end < start, assume next day? 
-        // Or just show error? Let's show error for simplicity first as typical work session.
-        let diff = (end.getTime() - start.getTime()) / 1000 // seconds
+        const diffMinutes = differenceInMinutes(end, start)
 
-        if (diff <= 0) {
-            setDurationDisplay("Invalid time range")
+        if (diffMinutes <= 0) {
             setError(t.invalidTimeRange || "End time must be after start time")
         } else {
             setError(null)
-            const hours = Math.floor(diff / 3600)
-            const minutes = Math.floor((diff % 3600) / 60)
-            setDurationDisplay(`${hours}h ${minutes}m`)
+            const hours = Math.floor(diffMinutes / 60)
+            const mins = diffMinutes % 60
+            setDurationHours(hours.toString())
+            setDurationMinutes(mins.toString())
         }
-    }, [startTime, endTime, t])
+    }, [startTime, endTime, lastEditedField, t])
+
+    // Sync logic: Duration -> End Time
+    useEffect(() => {
+        if (lastEditedField !== "duration" || !startTime) return
+
+        const start = parse(startTime, "HH:mm", new Date())
+        const hours = parseInt(durationHours) || 0
+        const mins = parseInt(durationMinutes) || 0
+        
+        const totalAddMinutes = (hours * 60) + mins
+
+        if (totalAddMinutes <= 0) {
+            setError(t.invalidDuration || "Duration must be greater than 0")
+        } else {
+            setError(null)
+            const newEnd = addMinutes(start, totalAddMinutes)
+            setEndTime(format(newEnd, "HH:mm"))
+        }
+    }, [startTime, durationHours, durationMinutes, lastEditedField, t])
 
     const handleSave = () => {
         if (error) return // Prevent save if validation failed
@@ -92,8 +111,7 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
 
         let diff = (end.getTime() - start.getTime()) / 1000
         if (diff <= 0) {
-            // Handle overnight if we want to support it, 
-            // but simpler to enforce same-day for manual entry UI for now.
+            // Simple approach for now (assumes same day)
             setError(t.invalidTimeRange || "End time must be after start time")
             return
         }
@@ -111,13 +129,24 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
         onOpenChange(false)
     }
 
+    // Helper functions for input handlers
+    const handleTimeChange = (setter: React.Dispatch<React.SetStateAction<string>>, value: string) => {
+        setLastEditedField("time")
+        setter(value)
+    }
+
+    const handleDurationChange = (setter: React.Dispatch<React.SetStateAction<string>>, value: string) => {
+        setLastEditedField("duration")
+        setter(value)
+    }
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]">
                 <DialogHeader>
                     <DialogTitle>{t.addManualSession || "Add Manual Session"}</DialogTitle>
                 </DialogHeader>
-                <div className="grid gap-4 py-4">
+                <div className="grid gap-5 py-4">
 
                     {/* Project Selection */}
                     <div className="grid gap-2">
@@ -151,38 +180,65 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
                         />
                     </div>
 
-                    {/* Time Range */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="startTime">{t.startTime || "Start"}</Label>
-                            <Input
-                                id="startTime"
-                                type="time"
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                            />
+                    {/* Time & Duration Section */}
+                    <div className="bg-muted/30 p-4 rounded-lg space-y-4 border">
+                        {/* Time Range */}
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label htmlFor="startTime">{t.startTime || "Start Time"}</Label>
+                                <Input
+                                    id="startTime"
+                                    type="time"
+                                    value={startTime}
+                                    onChange={(e) => handleTimeChange(setStartTime, e.target.value)}
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="endTime">{t.endTime || "End Time"}</Label>
+                                <Input
+                                    id="endTime"
+                                    type="time"
+                                    value={endTime}
+                                    onChange={(e) => handleTimeChange(setEndTime, e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="endTime">{t.endTime || "End"}</Label>
-                            <Input
-                                id="endTime"
-                                type="time"
-                                value={endTime}
-                                onChange={(e) => setEndTime(e.target.value)}
-                            />
-                        </div>
-                    </div>
 
-                    {/* Duration Display */}
-                    <div className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
-                        <span className="text-sm text-muted-foreground">{t.duration || "Duration"}:</span>
-                        <span className={`font-mono font-medium ${error ? "text-destructive" : ""}`}>
-                            {durationDisplay}
-                        </span>
+                        {/* Duration Input */}
+                        <div className="grid gap-2 pt-2 border-t">
+                            <Label>{t.duration || "Duration"}</Label>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="23"
+                                        value={durationHours}
+                                        onChange={(e) => handleDurationChange(setDurationHours, e.target.value)}
+                                        className="text-right"
+                                    />
+                                    <span className="text-sm font-medium text-muted-foreground mr-2">h</span>
+                                </div>
+                                <div className="flex items-center gap-2 flex-1">
+                                    <Input
+                                        type="number"
+                                        min="0"
+                                        max="59"
+                                        value={durationMinutes}
+                                        onChange={(e) => handleDurationChange(setDurationMinutes, e.target.value)}
+                                        className="text-right"
+                                    />
+                                    <span className="text-sm font-medium text-muted-foreground">m</span>
+                                </div>
+                            </div>
+                            {error && (
+                                <p className="text-sm text-destructive mt-1">{error}</p>
+                            )}
+                        </div>
                     </div>
 
                     {/* Mode Switch */}
-                    <div className="flex items-center justify-between space-x-2 py-2">
+                    <div className="flex items-center justify-between space-x-2">
                         <Label htmlFor="billable-mode" className="flex flex-col space-y-1">
                             <span>{isBillable ? (t.billableMode || "Billable Mode") : (t.focusMode || "Focus Mode")}</span>
                             <span className="font-normal text-xs text-muted-foreground">
@@ -207,3 +263,4 @@ export function ManualEntryDialog({ open, onOpenChange, onAddSession, t }: Manua
         </Dialog>
     )
 }
+
