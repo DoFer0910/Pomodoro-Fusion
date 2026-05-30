@@ -33,6 +33,7 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
     const [clientName, setClientName] = useState("")
     const [hourlyRate, setHourlyRate] = useState(defaultHourlyRate)
     const [color, setColor] = useState(COLORS[0])
+    const [repoPath, setRepoPath] = useState("")
 
     useEffect(() => {
         if (open) {
@@ -41,11 +42,13 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                 setClientName(project.clientName || "")
                 setHourlyRate(project.hourlyRate)
                 setColor(project.color)
+                setRepoPath(project.repoPath || "")
             } else {
                 setName("")
                 setClientName("")
                 setHourlyRate(defaultHourlyRate)
                 setColor(COLORS[Math.floor(Math.random() * COLORS.length)])
+                setRepoPath("")
             }
         }
     }, [open, project, defaultHourlyRate])
@@ -57,6 +60,7 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
             clientName: clientName.trim() || undefined,
             hourlyRate,
             color,
+            repoPath: repoPath.trim() || undefined,
         })
         onOpenChange(false)
     }
@@ -84,6 +88,18 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                             value={hourlyRate}
                             onChange={(e) => setHourlyRate(Number(e.target.value))}
                         />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="repoPath">{t.repoPath || "Repository Path"}</Label>
+                        <Input
+                            id="repoPath"
+                            value={repoPath}
+                            onChange={(e) => setRepoPath(e.target.value)}
+                            placeholder="e.g. d:\\Dev\\my-project"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            {t.repoPathHint || "Claude Code の作業時間をこのプロジェクトに紐づけます"}
+                        </p>
                     </div>
                     <div className="grid gap-2">
                         <Label>{t.projectColor}</Label>

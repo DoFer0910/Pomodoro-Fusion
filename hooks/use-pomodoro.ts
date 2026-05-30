@@ -8,6 +8,7 @@ import {
     addSession as persistSession,
     getProjects
 } from "@/lib/storage"
+import { syncClaudeSessions, type SyncSummary } from "@/lib/claude-sync"
 
 export function usePomodoro() {
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -142,6 +143,22 @@ export function usePomodoro() {
         [sessions]
     )
 
+    // Claude Code ログをスキャンし、登録 Project に紐づくセッションを冪等に取り込む。
+    // 取り込んだ結果を永続化して state に反映し、サマリ（追加/更新/未マッチ件数）を返す。
+    const syncClaude = useCallback(async (): Promise<SyncSummary> => {
+        const projects = await getProjects()
+        const current = await getSessions()
+        const { sessions: merged, summary } = await syncClaudeSessions(projects, current)
+
+        if (summary.added > 0 || summary.updated > 0) {
+            const sorted = [...merged].sort((a, b) => b.timestamp - a.timestamp)
+            setSessions(sorted)
+            await persistSessions(sorted)
+        }
+
+        return summary
+    }, [])
+
     return {
         settings,
         sessions,
@@ -153,6 +170,7 @@ export function usePomodoro() {
         mounted,
         earnedAmount,
         showMoneyOverlay,
-        updateSession
+        updateSession,
+        syncClaude
     }
 }

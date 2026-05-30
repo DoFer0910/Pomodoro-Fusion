@@ -1,22 +1,52 @@
 "use client"
 
 import { useState } from "react"
+import { toast } from "sonner"
 import { useProjects } from "@/hooks/use-projects"
 import { Project } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, Pencil, Trash2, FolderOpen } from "lucide-react"
+import { Plus, Pencil, Trash2, FolderOpen, RefreshCw } from "lucide-react"
 import { ProjectDialog } from "./project-dialog"
+import type { SyncSummary } from "@/lib/claude-sync"
 
 interface ProjectListProps {
     defaultHourlyRate: number
     t: Record<string, string>
+    /** Claude Code ログ同期。Electron 環境でのみ渡される */
+    onSyncClaude?: () => Promise<SyncSummary>
 }
 
-export function ProjectList({ defaultHourlyRate, t }: ProjectListProps) {
+export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListProps) {
     const { projects, addProject, updateProject, deleteProject } = useProjects()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingProject, setEditingProject] = useState<Project | undefined>(undefined)
+    const [isSyncing, setIsSyncing] = useState(false)
+
+    const isElectron = typeof window !== "undefined" && (window as any).electron
+
+    const handleSyncClaude = async () => {
+        if (!onSyncClaude || isSyncing) return
+        setIsSyncing(true)
+        try {
+            const summary = await onSyncClaude()
+            const base = (t.claudeSyncResult || "Claude Code: 新規 {added} 件 / 更新 {updated} 件")
+                .replace("{added}", String(summary.added))
+                .replace("{updated}", String(summary.updated))
+            if (summary.unmatched > 0) {
+                const unmatchedMsg = (t.claudeSyncUnmatched || "（未登録リポジトリ {unmatched} 件）")
+                    .replace("{unmatched}", String(summary.unmatched))
+                toast.success(base + unmatchedMsg)
+            } else {
+                toast.success(base)
+            }
+        } catch (err) {
+            console.error("[handleSyncClaude] sync error:", err)
+            toast.error(t.claudeSyncFailed || "Claude Code の同期に失敗しました")
+        } finally {
+            setIsSyncing(false)
+        }
+    }
 
     const handleAdd = () => {
         setEditingProject(undefined)
@@ -49,10 +79,24 @@ export function ProjectList({ defaultHourlyRate, t }: ProjectListProps) {
                     <FolderOpen className="w-5 h-5" />
                     {t.projects}
                 </CardTitle>
-                <Button size="sm" onClick={handleAdd}>
-                    <Plus className="w-4 h-4 mr-1" />
-                    {t.addProject}
-                </Button>
+                <div className="flex items-center gap-2">
+                    {isElectron && onSyncClaude && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleSyncClaude}
+                            disabled={isSyncing}
+                            title={t.claudeSyncHint || "Claude Code の作業時間を取り込みます"}
+                        >
+                            <RefreshCw className={`w-4 h-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
+                            {t.syncClaude || "Claude Code 同期"}
+                        </Button>
+                    )}
+                    <Button size="sm" onClick={handleAdd}>
+                        <Plus className="w-4 h-4 mr-1" />
+                        {t.addProject}
+                    </Button>
+                </div>
             </CardHeader>
             <CardContent>
                 {projects.length === 0 ? (
