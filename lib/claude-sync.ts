@@ -75,8 +75,22 @@ export function computeActiveSeconds(
 }
 
 /**
+ * Project に紐づくリポジトリパスを、新形式 repoPaths と旧形式 repoPath の
+ * 両方からまとめて返す（後方互換）。空・重複は除いた正規化済みの集合。
+ */
+export function getProjectRepoPaths(project: Project): string[] {
+  const raw = [...(project.repoPaths || []), ...(project.repoPath ? [project.repoPath] : [])]
+  const normalized = raw
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0)
+    .map((p) => normalizePath(p))
+  return Array.from(new Set(normalized))
+}
+
+/**
  * スキャン結果 1 件を、登録済み Project に正規化パスで照合して projectId を返す。
- * repoPath を持たない Project、repoPath が null のスキャン結果はマッチしない。
+ * Project の repoPaths / repoPath のいずれかに一致すればマッチ。
+ * パスを持たない Project、repoPath が null のスキャン結果はマッチしない。
  */
 export function matchProjectId(
   result: ClaudeScanResult,
@@ -84,9 +98,7 @@ export function matchProjectId(
 ): string | undefined {
   if (!result.repoPath) return undefined
   const target = normalizePath(result.repoPath)
-  const matched = projects.find(
-    (p) => p.repoPath && normalizePath(p.repoPath) === target,
-  )
+  const matched = projects.find((p) => getProjectRepoPaths(p).includes(target))
   return matched?.id
 }
 

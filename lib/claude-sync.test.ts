@@ -4,6 +4,7 @@ import {
   normalizePath,
   matchProjectId,
   mergeClaudeSessions,
+  getProjectRepoPaths,
   CLAUDE_IDLE_GAP_SECONDS,
   type ClaudeScanResult,
 } from "./claude-sync"
@@ -57,14 +58,14 @@ describe("normalizePath", () => {
   })
 })
 
-const makeProject = (id: string, repoPath?: string): Project => ({
+const makeProject = (id: string, repoPaths?: string[]): Project => ({
   id,
   name: id,
   hourlyRate: 3000,
   color: "#000",
   createdAt: 0,
   updatedAt: 0,
-  repoPath,
+  repoPaths,
 })
 
 const makeResult = (overrides: Partial<ClaudeScanResult>): ClaudeScanResult => ({
@@ -76,7 +77,7 @@ const makeResult = (overrides: Partial<ClaudeScanResult>): ClaudeScanResult => (
 })
 
 describe("matchProjectId", () => {
-  const projects = [makeProject("p1", "D:/Dev/X"), makeProject("p2")]
+  const projects = [makeProject("p1", ["D:/Dev/X"]), makeProject("p2")]
 
   it("正規化比較で repoPath が一致する Project の id を返す", () => {
     const r = makeResult({ repoPath: "d:\\Dev\\x" })
@@ -92,10 +93,65 @@ describe("matchProjectId", () => {
     const r = makeResult({ repoPath: "d:\\Dev\\other" })
     expect(matchProjectId(r, projects)).toBeUndefined()
   })
+
+  it("複数の repoPaths のいずれかに一致すればマッチする", () => {
+    const multi = [makeProject("p1", ["D:/Dev/A", "D:/Dev/B", "D:/Dev/C"])]
+    expect(matchProjectId(makeResult({ repoPath: "d:\\Dev\\a" }), multi)).toBe("p1")
+    expect(matchProjectId(makeResult({ repoPath: "d:\\Dev\\b" }), multi)).toBe("p1")
+    expect(matchProjectId(makeResult({ repoPath: "d:\\Dev\\c" }), multi)).toBe("p1")
+    expect(matchProjectId(makeResult({ repoPath: "d:\\Dev\\d" }), multi)).toBeUndefined()
+  })
+
+  it("旧形式の repoPath（単一）にも後方互換でマッチする", () => {
+    const legacy: Project = {
+      id: "legacy",
+      name: "legacy",
+      hourlyRate: 3000,
+      color: "#000",
+      createdAt: 0,
+      updatedAt: 0,
+      repoPath: "D:/Dev/Legacy", // 旧フィールドのみ
+    }
+    expect(matchProjectId(makeResult({ repoPath: "d:\\Dev\\legacy" }), [legacy])).toBe("legacy")
+  })
+})
+
+describe("getProjectRepoPaths", () => {
+  it("repoPaths と旧 repoPath を正規化して統合する", () => {
+    const p: Project = {
+      id: "p",
+      name: "p",
+      hourlyRate: 0,
+      color: "#000",
+      createdAt: 0,
+      updatedAt: 0,
+      repoPaths: ["D:/Dev/A", "  ", "D:\\Dev\\B"],
+      repoPath: "D:/Dev/C",
+    }
+    expect(getProjectRepoPaths(p)).toEqual(["d:/dev/a", "d:/dev/b", "d:/dev/c"])
+  })
+
+  it("repoPaths と旧 repoPath が同一パスを指す場合は重複を除く", () => {
+    const p: Project = {
+      id: "p",
+      name: "p",
+      hourlyRate: 0,
+      color: "#000",
+      createdAt: 0,
+      updatedAt: 0,
+      repoPaths: ["D:/Dev/X"],
+      repoPath: "d:\\Dev\\X",
+    }
+    expect(getProjectRepoPaths(p)).toEqual(["d:/dev/x"])
+  })
+
+  it("パスが無ければ空配列", () => {
+    expect(getProjectRepoPaths(makeProject("p"))).toEqual([])
+  })
 })
 
 describe("mergeClaudeSessions", () => {
-  const projects = [makeProject("p1", "D:/Dev/X")]
+  const projects = [makeProject("p1", ["D:/Dev/X"])]
 
   it("マッチする新規セッションを claude-code / billable で追加する", () => {
     const results = [makeResult({ claudeSessionId: "s1", durationSeconds: 600 })]

@@ -7,7 +7,12 @@ export interface Project {
   archived?: boolean
   createdAt: number
   updatedAt: number
-  /** Claude Code 連携用: 紐づける git リポジトリの絶対パス */
+  /** Claude Code 連携用: 紐づける git リポジトリの絶対パス（複数可） */
+  repoPaths?: string[]
+  /**
+   * @deprecated 後方互換用。旧バージョンで保存された単一パス。
+   * 読み取り時のみ参照し、保存時は repoPaths に統一する。
+   */
   repoPath?: string
 }
 
