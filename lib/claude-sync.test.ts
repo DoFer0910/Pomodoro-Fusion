@@ -58,7 +58,11 @@ describe("normalizePath", () => {
   })
 })
 
-const makeProject = (id: string, repoPaths?: string[]): Project => ({
+const makeProject = (
+  id: string,
+  repoPaths?: string[],
+  repoBillableMap?: Record<string, boolean>,
+): Project => ({
   id,
   name: id,
   hourlyRate: 3000,
@@ -66,6 +70,7 @@ const makeProject = (id: string, repoPaths?: string[]): Project => ({
   createdAt: 0,
   updatedAt: 0,
   repoPaths,
+  repoBillableMap,
 })
 
 const makeResult = (overrides: Partial<ClaudeScanResult>): ClaudeScanResult => ({
@@ -153,7 +158,7 @@ describe("getProjectRepoPaths", () => {
 describe("mergeClaudeSessions", () => {
   const projects = [makeProject("p1", ["D:/Dev/X"])]
 
-  it("マッチする新規セッションを claude-code / billable で追加する", () => {
+  it("マッチする新規セッションを claude-code で追加する（区分未設定はデフォルト没頭）", () => {
     const results = [makeResult({ claudeSessionId: "s1", durationSeconds: 600 })]
     const { sessions, summary } = mergeClaudeSessions(results, projects, [])
     expect(summary).toEqual({ added: 1, updated: 0, unmatched: 0 })
@@ -161,11 +166,42 @@ describe("mergeClaudeSessions", () => {
     expect(sessions[0]).toMatchObject({
       source: "claude-code",
       claudeSessionId: "s1",
-      isBillable: true,
+      isBillable: false, // repoBillableMap 未設定 → 没頭モード
       projectId: "p1",
       duration: 600,
       status: "completed",
     })
+  })
+
+  it("repoBillableMap で収益指定したリポジトリは isBillable: true で追加する", () => {
+    const billableProjects = [
+      makeProject("p1", ["D:/Dev/X"], { [normalizePath("D:/Dev/X")]: true }),
+    ]
+    const results = [makeResult({ claudeSessionId: "s1", durationSeconds: 600 })]
+    const { sessions } = mergeClaudeSessions(results, billableProjects, [])
+    expect(sessions[0].isBillable).toBe(true)
+  })
+
+  it("区分を没頭→収益に変えると再同期で既存セッションの isBillable も更新する", () => {
+    // 最初は没頭で記録
+    const first = mergeClaudeSessions(
+      [makeResult({ claudeSessionId: "s1", durationSeconds: 600 })],
+      projects,
+      [],
+    )
+    expect(first.sessions[0].isBillable).toBe(false)
+
+    // リポジトリを収益に切り替えて再同期
+    const billableProjects = [
+      makeProject("p1", ["D:/Dev/X"], { [normalizePath("D:/Dev/X")]: true }),
+    ]
+    const second = mergeClaudeSessions(
+      [makeResult({ claudeSessionId: "s1", durationSeconds: 600 })],
+      billableProjects,
+      first.sessions,
+    )
+    expect(second.summary.updated).toBe(1)
+    expect(second.sessions[0].isBillable).toBe(true)
   })
 
   it("未登録リポジトリは unmatched に計上しスキップする", () => {

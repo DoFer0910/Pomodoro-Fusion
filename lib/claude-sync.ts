@@ -96,16 +96,40 @@ export function matchProjectId(
   result: ClaudeScanResult,
   projects: Project[],
 ): string | undefined {
+  return matchProject(result, projects)?.projectId
+}
+
+export interface ProjectMatch {
+  /** マッチした Project の id */
+  projectId: string
+  /** このリポジトリを収益（billable）として計上するか。未設定リポジトリは false（没頭モード） */
+  isBillable: boolean
+}
+
+/**
+ * スキャン結果を Project に照合し、projectId と収益区分（isBillable）を返す。
+ * 区分は Project.repoBillableMap[正規化パス] を参照し、未設定なら没頭モード（false）。
+ * matchProjectId と異なり、収益/没頭の判定まで含めて返す。
+ */
+export function matchProject(
+  result: ClaudeScanResult,
+  projects: Project[],
+): ProjectMatch | undefined {
   if (!result.repoPath) return undefined
   const target = normalizePath(result.repoPath)
   const matched = projects.find((p) => getProjectRepoPaths(p).includes(target))
-  return matched?.id
+  if (!matched) return undefined
+  // デフォルトは没頭モード。明示的に true のときだけ収益扱い。
+  const isBillable = matched.repoBillableMap?.[target] === true
+  return { projectId: matched.id, isBillable }
 }
 
 /**
  * スキャン結果を既存セッションへ冪等にマージする純粋関数。
- * - claudeSessionId で既存を探し、あれば duration / timestamp / projectId を更新
- * - なければ新規 Session を追加（source: "claude-code", isBillable: true）
+ * - claudeSessionId で既存を探し、あれば duration / timestamp / projectId / isBillable を更新
+ * - なければ新規 Session を追加（source: "claude-code"）
+ * - isBillable はリポジトリの収益区分（repoBillableMap）に従う。未設定リポジトリは没頭（false）。
+ *   既存セッションも再同期時に区分の変更を反映するため上書きする。
  * - 登録 Project に紐づかない結果（projectId 無し）はスキップして unmatched に計上
  *
  * window や electron に依存しないため、そのままユニットテストできる。
@@ -124,11 +148,12 @@ export function mergeClaudeSessions(
   const summary: SyncSummary = { added: 0, updated: 0, unmatched: 0 }
 
   for (const result of results) {
-    const projectId = matchProjectId(result, projects)
-    if (!projectId) {
+    const match = matchProject(result, projects)
+    if (!match) {
       summary.unmatched++
       continue
     }
+    const { projectId, isBillable } = match
     if (result.durationSeconds <= 0) {
       // 作業時間 0 のセッション（イベント 1 件以下など）は記録しない
       continue
@@ -142,6 +167,8 @@ export function mergeClaudeSessions(
         duration: result.durationSeconds,
         timestamp: result.startTimestamp,
         projectId,
+        // リポジトリ側の区分変更を既存セッションにも反映する
+        isBillable,
       }
       summary.updated++
     } else {
@@ -150,7 +177,7 @@ export function mergeClaudeSessions(
         timestamp: result.startTimestamp,
         duration: result.durationSeconds,
         status: "completed",
-        isBillable: true,
+        isBillable,
         projectId,
         source: "claude-code",
         claudeSessionId: result.claudeSessionId,

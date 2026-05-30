@@ -14,6 +14,12 @@ export interface Project {
    * 読み取り時のみ参照し、保存時は repoPaths に統一する。
    */
   repoPath?: string
+  /**
+   * リポジトリごとの収益/没頭の区分。
+   * キーは normalizePath で正規化したリポジトリパス、値は「収益（billable）か」。
+   * 未登録のパスは没頭モード（false）として扱う（デフォルト没頭）。
+   */
+  repoBillableMap?: Record<string, boolean>
 }
 
 export interface Todo {

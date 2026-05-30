@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus, X } from "lucide-react"
 import { Project } from "@/lib/types"
+import { normalizePath } from "@/lib/claude-sync"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 interface ProjectDialogProps {
     open: boolean
@@ -36,6 +38,8 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
     const [color, setColor] = useState(COLORS[0])
     // 複数リポジトリパス。常に末尾に空欄を1つ持たせて追加入力しやすくする。
     const [repoPaths, setRepoPaths] = useState<string[]>([""])
+    // 各行のパス（生文字列）→ 収益(billable)かどうか。未設定は没頭モード(false)。
+    const [repoBillable, setRepoBillable] = useState<Record<string, boolean>>({})
 
     useEffect(() => {
         if (open) {
@@ -51,12 +55,20 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                 ].filter((p) => p.trim().length > 0)
                 const unique = Array.from(new Set(existing))
                 setRepoPaths(unique.length > 0 ? [...unique, ""] : [""])
+                // 各パスの収益区分を、正規化キーの repoBillableMap から生パスキーへ展開する
+                const billableMap = project.repoBillableMap || {}
+                const billableState: Record<string, boolean> = {}
+                unique.forEach((p) => {
+                    billableState[p] = billableMap[normalizePath(p)] === true
+                })
+                setRepoBillable(billableState)
             } else {
                 setName("")
                 setClientName("")
                 setHourlyRate(defaultHourlyRate)
                 setColor(COLORS[Math.floor(Math.random() * COLORS.length)])
                 setRepoPaths([""])
+                setRepoBillable({})
             }
         }
     }, [open, project, defaultHourlyRate])
@@ -82,12 +94,19 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
         const cleaned = Array.from(
             new Set(repoPaths.map((p) => p.trim()).filter((p) => p.length > 0)),
         )
+        // 各リポジトリの収益区分を正規化パスのキーで保存する。
+        // 収益(true)のものだけ持てば十分だが、明示的に没頭へ戻した場合も記録するため両方保持する。
+        const billableMap: Record<string, boolean> = {}
+        cleaned.forEach((p) => {
+            billableMap[normalizePath(p)] = repoBillable[p] === true
+        })
         onSave({
             name,
             clientName: clientName.trim() || undefined,
             hourlyRate,
             color,
             repoPaths: cleaned.length > 0 ? cleaned : undefined,
+            repoBillableMap: cleaned.length > 0 ? billableMap : undefined,
             // 旧形式は保存しない（repoPaths に統一）。既存データの repoPath は読込時に取り込み済み。
             repoPath: undefined,
         })
@@ -122,23 +141,46 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                         <Label>{t.repoPath || "Repository Path"}</Label>
                         <div className="space-y-2">
                             {repoPaths.map((path, index) => (
-                                <div key={index} className="flex items-center gap-2">
-                                    <Input
-                                        value={path}
-                                        onChange={(e) => updateRepoPath(index, e.target.value)}
-                                        placeholder="e.g. d:\\Dev\\my-project"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon-sm"
-                                        className="shrink-0 text-muted-foreground hover:text-destructive"
-                                        onClick={() => removeRepoPath(index)}
-                                        disabled={repoPaths.length === 1 && !path.trim()}
-                                        title={t.removeRepoPath || "削除"}
-                                    >
-                                        <X className="w-4 h-4" />
-                                    </Button>
+                                <div key={index} className="space-y-1.5">
+                                    <div className="flex items-center gap-2">
+                                        <Input
+                                            value={path}
+                                            onChange={(e) => updateRepoPath(index, e.target.value)}
+                                            placeholder="e.g. d:\\Dev\\my-project"
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon-sm"
+                                            className="shrink-0 text-muted-foreground hover:text-destructive"
+                                            onClick={() => removeRepoPath(index)}
+                                            disabled={repoPaths.length === 1 && !path.trim()}
+                                            title={t.removeRepoPath || "削除"}
+                                        >
+                                            <X className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                    {path.trim().length > 0 && (
+                                        <ToggleGroup
+                                            type="single"
+                                            variant="outline"
+                                            size="sm"
+                                            value={repoBillable[path] ? "billable" : "focus"}
+                                            onValueChange={(v) => {
+                                                // 空選択（同じ値を再クリック）は無視して、必ずどちらかを保持する
+                                                if (!v) return
+                                                setRepoBillable((prev) => ({ ...prev, [path]: v === "billable" }))
+                                            }}
+                                            className="w-full"
+                                        >
+                                            <ToggleGroupItem value="billable" className="text-xs">
+                                                {t.repoBillable || "収益"}
+                                            </ToggleGroupItem>
+                                            <ToggleGroupItem value="focus" className="text-xs">
+                                                {t.repoFocus || "没頭"}
+                                            </ToggleGroupItem>
+                                        </ToggleGroup>
+                                    )}
                                 </div>
                             ))}
                             <Button
@@ -154,6 +196,9 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                         </div>
                         <p className="text-xs text-muted-foreground">
                             {t.repoPathHint || "Claude Code の作業時間をこのプロジェクトに紐づけます"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                            {t.repoBillableHint || "リポジトリごとに、その時間を収益として計上するか没頭モードに換算するかを選べます"}
                         </p>
                     </div>
                     <div className="grid gap-2">
