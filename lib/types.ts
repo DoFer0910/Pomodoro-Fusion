@@ -7,6 +7,8 @@ export interface Project {
   archived?: boolean
   createdAt: number
   updatedAt: number
+  /** Claude Code 連携用: 紐づける git リポジトリの絶対パス */
+  repoPath?: string
 }
 
 export interface Todo {
@@ -26,6 +28,10 @@ export interface Session {
   todoId?: string
   todoTitle?: string
   projectId?: string
+  /** セッションの記録元。未指定は従来のポモドーロ計測（pomodoro 相当）として扱う */
+  source?: "pomodoro" | "manual" | "claude-code"
+  /** Claude Code セッションの jsonl ファイル名（= sessionId）。冪等同期のキー */
+  claudeSessionId?: string
 }
 
 export interface Settings {
