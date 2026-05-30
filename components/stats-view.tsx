@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History } from "lucide-react"
+import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History, Bot } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -164,6 +164,31 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     }
   }, [filteredSessions, settings, selectedDate, projects])
 
+  // Claude Code セッションの当月集計（独立表示用）。
+  // 既存の月次集計とは別に、source === "claude-code" のみを抽出して時間・収益を出す。
+  const claudeStats = useMemo(() => {
+    const year = selectedDate.getFullYear()
+    const month = selectedDate.getMonth()
+    const startOfMonth = new Date(year, month, 1).getTime()
+    const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).getTime()
+
+    const claudeSessions = sessions.filter(
+      (s) =>
+        s.source === "claude-code" &&
+        s.timestamp >= startOfMonth &&
+        s.timestamp <= endOfMonth
+    )
+
+    const totalDuration = claudeSessions.reduce((acc, s) => acc + s.duration, 0)
+    const totalEarnings = claudeSessions.reduce((acc, s) => acc + calculateSessionEarnings(s), 0)
+
+    return {
+      sessionCount: claudeSessions.length,
+      totalDuration,
+      totalEarnings,
+    }
+  }, [sessions, selectedDate, projects, settings])
+
   const handleSaveGoal = () => {
     const newGoal = parseInt(tempGoal, 10)
     if (!isNaN(newGoal) && newGoal > 0) {
@@ -272,6 +297,36 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
             </div>
           </CardContent>
         </Card>
+
+        {/* Claude Code Card - 独立表示（当月に Claude Code セッションがある場合のみ） */}
+        {claudeStats.sessionCount > 0 && (
+          <Card className="col-span-1 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <Bot className="w-4 h-4 text-violet-500" />
+                {t.claudeCodeTime || "Claude Code"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="mt-2">
+                <span className="text-4xl font-bold tracking-tighter text-foreground">
+                  {formatDuration(claudeStats.totalDuration)}
+                </span>
+                <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 text-xs font-medium">
+                    {claudeStats.sessionCount} {t.sessions}
+                  </span>
+                  {isBillable && (
+                    <span className="text-xs">
+                      ¥{claudeStats.totalEarnings.toLocaleString()}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Goal Card (Span 2) - Billable Only */}
         {isBillable ? (
@@ -470,12 +525,28 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
                       tickFormatter={(value) => `¥${value.toLocaleString()}`}
                     />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--popover)', borderRadius: '8px', border: '1px solid var(--border)', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-                      labelStyle={{ color: 'var(--muted-foreground)', marginBottom: '4px' }}
-                      itemStyle={{ color: 'var(--foreground)' }}
-                      formatter={(value: number) => [`¥${value.toLocaleString()}`, "Earnings"]}
-                      labelFormatter={(label) => `${selectedDate.getMonth() + 1}/${label}`}
                       cursor={{ stroke: 'var(--border)', strokeWidth: 1 }}
+                      content={({ active, payload, label }) => {
+                        if (active && payload && payload.length) {
+                          const data = payload[0].payload
+                          return (
+                            <div className="bg-popover border border-border rounded-lg shadow-[0_4px_12px_rgba(0,0,0,0.1)] p-3 text-sm">
+                              <p className="text-muted-foreground mb-1.5">{`${selectedDate.getMonth() + 1}/${label}`}</p>
+                              <div className="flex flex-col gap-1.5">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-primary shrink-0" />
+                                  <span className="text-foreground">Earnings: ¥{Math.round(data.earnings).toLocaleString()}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full bg-muted-foreground shrink-0" />
+                                  <span className="text-foreground">Time: {formatDuration(data.duration)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        }
+                        return null
+                      }}
                     />
                     <Area
                       type="monotone"

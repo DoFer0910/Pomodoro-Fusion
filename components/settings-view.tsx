@@ -12,15 +12,17 @@ import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-mana
 import { toast } from "sonner"
 
 import { ProjectList } from "./project-list"
+import type { SyncSummary } from "@/lib/claude-sync"
 
 interface SettingsViewProps {
   settings: Settings
   onSettingsChange: (settings: Settings) => void
   t: Record<string, string>
   isBillable: boolean
+  onSyncClaude?: () => Promise<SyncSummary>
 }
 
-export function SettingsView({ settings, onSettingsChange, t, isBillable }: SettingsViewProps) {
+export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncClaude }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
 
   useEffect(() => {
@@ -97,7 +99,7 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable }: Sett
             </CardContent>
           </Card>
 
-          <ProjectList defaultHourlyRate={formData.defaultHourlyRate} t={t} />
+          <ProjectList defaultHourlyRate={formData.defaultHourlyRate} t={t} onSyncClaude={onSyncClaude} />
         </>
       )}
 

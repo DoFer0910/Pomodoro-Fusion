@@ -5,9 +5,10 @@ contextBridge.exposeInMainWorld('electron', {
     write: (key, value) => ipcRenderer.invoke('storage:set', key, value),
     remove: (key) => ipcRenderer.invoke('storage:delete', key),
     setAlwaysOnTop: (flag) => ipcRenderer.invoke('window:set-always-on-top', flag),
-    setCompactMode: (isCompact) => ipcRenderer.invoke('window:set-compact-mode', isCompact),
+    setCompactMode: (isCompact, restoreAlwaysOnTop) => ipcRenderer.invoke('window:set-compact-mode', isCompact, restoreAlwaysOnTop),
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     setBounds: (bounds) => ipcRenderer.invoke('window:set-bounds', bounds),
     close: () => ipcRenderer.invoke('window:close'),
+    scanClaudeSessions: () => ipcRenderer.invoke('claude:scan-sessions'),
 });

@@ -1,6 +1,6 @@
 {
   "name": "my-v0-project",
-  "version": "0.3.9",
+  "version": "0.3.19",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
@@ -9,6 +9,7 @@
     "dev:electron": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:3000 && cross-env ELECTRON_IS_DEV=1 electron .\"",
     "build:electron": "next build && electron-builder",
     "lint": "eslint .",
+    "test": "vitest run",
     "start": "next start",
     "postinstall": "electron-builder install-app-deps"
   },
@@ -80,6 +81,7 @@
     "tw-animate-css": "1.3.3",
     "typescript": "^5",
     "vaul": "^1.1.2",
+    "vitest": "^4.1.7",
     "wait-on": "^9.0.4",
     "zod": "3.25.76"
   },

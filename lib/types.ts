@@ -7,6 +7,19 @@ export interface Project {
   archived?: boolean
   createdAt: number
   updatedAt: number
+  /** Claude Code 連携用: 紐づける git リポジトリの絶対パス（複数可） */
+  repoPaths?: string[]
+  /**
+   * @deprecated 後方互換用。旧バージョンで保存された単一パス。
+   * 読み取り時のみ参照し、保存時は repoPaths に統一する。
+   */
+  repoPath?: string
+  /**
+   * リポジトリごとの収益/没頭の区分。
+   * キーは normalizePath で正規化したリポジトリパス、値は「収益（billable）か」。
+   * 未登録のパスは没頭モード（false）として扱う（デフォルト没頭）。
+   */
+  repoBillableMap?: Record<string, boolean>
 }
 
 export interface Todo {
@@ -26,6 +39,10 @@ export interface Session {
   todoId?: string
   todoTitle?: string
   projectId?: string
+  /** セッションの記録元。未指定は従来のポモドーロ計測（pomodoro 相当）として扱う */
+  source?: "pomodoro" | "manual" | "claude-code"
+  /** Claude Code セッションの jsonl ファイル名（= sessionId）。冪等同期のキー */
+  claudeSessionId?: string
 }
 
 export interface Settings {

@@ -88,10 +88,25 @@ export const translations = {
     projectName: "プロジェクト名",
     clientName: "クライアント名 (任意)",
     projectColor: "カラー",
+    repoPath: "リポジトリのパス (任意・複数可)",
+    repoPathHint: "Claude Code の作業時間をこのプロジェクトに紐づけます",
+    addRepoPath: "リポジトリを追加",
+    removeRepoPath: "削除",
+    repoBillable: "収益",
+    repoFocus: "没頭",
+    repoBillableHint: "リポジトリごとに、その時間を収益として計上するか没頭モードに換算するかを選べます",
     selectProject: "プロジェクトを選択...",
     noProject: "プロジェクトなし",
     defaultHourlyRate: "デフォルト時給",
     defaultHourlyRateDesc: "プロジェクトが選択されていない場合に適用される時給です。",
+
+    // Claude Code 連携
+    syncClaude: "Claude Code 同期",
+    claudeCodeTime: "Claude Code",
+    claudeSyncHint: "Claude Code の作業時間を取り込みます",
+    claudeSyncResult: "Claude Code: 新規 {added} 件 / 更新 {updated} 件",
+    claudeSyncUnmatched: "（未登録リポジトリ {unmatched} 件）",
+    claudeSyncFailed: "Claude Code の同期に失敗しました",
 
     // Stats additional
     edit: "編集",
@@ -191,10 +206,25 @@ export const translations = {
     projectName: "Project Name",
     clientName: "Client Name (Optional)",
     projectColor: "Color",
+    repoPath: "Repository Paths (Optional)",
+    repoPathHint: "Link Claude Code working time to this project",
+    addRepoPath: "Add Repository",
+    removeRepoPath: "Remove",
+    repoBillable: "Billable",
+    repoFocus: "Focus",
+    repoBillableHint: "Choose per repository whether its time counts as earnings or as focus mode",
     selectProject: "Select Project...",
     noProject: "No Project",
     defaultHourlyRate: "Default Hourly Rate",
     defaultHourlyRateDesc: "This rate is used when no specific project is selected.",
+
+    // Claude Code integration
+    syncClaude: "Sync Claude Code",
+    claudeCodeTime: "Claude Code",
+    claudeSyncHint: "Import Claude Code working time",
+    claudeSyncResult: "Claude Code: {added} added / {updated} updated",
+    claudeSyncUnmatched: " ({unmatched} unregistered repos)",
+    claudeSyncFailed: "Failed to sync Claude Code",
 
     // Stats additional
     edit: "Edit",

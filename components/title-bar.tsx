@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Minus, Square, X, MonitorPlay } from "lucide-react" // MonitorPlay logic is separate
 import { cn } from "@/lib/utils"
 
@@ -8,8 +9,14 @@ interface TitleBarProps {
 }
 
 export function TitleBar({ className }: TitleBarProps) {
-    // Only render if we are in Electron
-    const isElectron = typeof window !== 'undefined' && (window as any).electron
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    // Only render if we are in Electron and mounted to prevent hydration mismatch
+    const isElectron = mounted && typeof window !== 'undefined' && (window as any).electron
 
     if (!isElectron) return null
 

@@ -12,6 +12,7 @@ import { SettingsView } from "./settings-view"
 import { TodoView } from "./todo-view"
 import { MoneyOverlay } from "./money-overlay"
 import { usePomodoro } from "@/hooks/use-pomodoro"
+import type { SyncSummary } from "@/lib/claude-sync"
 import { useTodo } from "@/hooks/use-todo"
 import { TimerProvider, useTimerContext } from "./timer-context"
 import { TimerMeta } from "./timer-meta"
@@ -30,7 +31,8 @@ export function PomodoroApp() {
     deleteSessions,
     mounted,
     earnedAmount,
-    showMoneyOverlay
+    showMoneyOverlay,
+    syncClaude
   } = usePomodoro()
 
   const { todos, addTodo, toggleTodo, deleteTodo, error } = useTodo()
@@ -52,29 +54,37 @@ export function PomodoroApp() {
 
   const toggleCompactMode = async () => {
     const newState = !isCompactMode
+    const prevAlwaysOnTop = isAlwaysOnTop
 
-    // Update UI state immediately for responsiveness
+    // UI状態を即座に更新（レスポンシブ性のため）
     setIsCompactMode(newState)
 
     if (newState) {
-      // Entering compact mode
-      prevAlwaysOnTopRef.current = isAlwaysOnTop // Store current state
+      // コンパクトモードへ移行
+      prevAlwaysOnTopRef.current = isAlwaysOnTop
       setIsAlwaysOnTop(true)
-      setCurrentView("timer") // Force switch to timer view
+      setCurrentView("timer")
     } else {
-      // Exiting compact mode
+      // 通常モードへ復帰
       const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
       setIsAlwaysOnTop(shouldRestoreAlwaysOnTop)
     }
 
     if (typeof window !== 'undefined' && (window as any).electron) {
-      if (newState) {
-        // Notify main process to enter compact mode
-        await (window as any).electron.setCompactMode(true)
-      } else {
-        // Notify main process to exit compact mode and restore always on top
-        const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
-        await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
+      try {
+        if (newState) {
+          // メインプロセスにコンパクトモードへの移行を通知
+          await (window as any).electron.setCompactMode(true)
+        } else {
+          // メインプロセスにコンパクトモード解除とAlwaysOnTop復元を通知
+          const shouldRestoreAlwaysOnTop = prevAlwaysOnTopRef.current
+          await (window as any).electron.setCompactMode(false, shouldRestoreAlwaysOnTop)
+        }
+      } catch (err) {
+        // Electron API呼び出し失敗時にUI状態をロールバック
+        console.error("[toggleCompactMode] Electron API エラー:", err)
+        setIsCompactMode(!newState)
+        setIsAlwaysOnTop(prevAlwaysOnTop)
       }
     }
   }
@@ -99,6 +109,7 @@ export function PomodoroApp() {
         mounted={mounted}
         earnedAmount={earnedAmount}
         showMoneyOverlay={showMoneyOverlay}
+        syncClaude={syncClaude}
         currentView={currentView}
         setCurrentView={setCurrentView}
         isAlwaysOnTop={isAlwaysOnTop}
@@ -132,6 +143,7 @@ function PomodoroAppContent({
   mounted,
   earnedAmount,
   showMoneyOverlay,
+  syncClaude,
   currentView,
   setCurrentView,
   isAlwaysOnTop,
@@ -156,6 +168,7 @@ function PomodoroAppContent({
   mounted: boolean
   earnedAmount: number
   showMoneyOverlay: boolean
+  syncClaude: () => Promise<SyncSummary>
   currentView: View
   setCurrentView: (v: View) => void
   isAlwaysOnTop: boolean
@@ -236,7 +249,7 @@ function PomodoroAppContent({
               </button>
 
               {/* Always on Top Toggle (Electron Only) */}
-              {(typeof window !== 'undefined' && (window as any).electron) && (
+              {(mounted && typeof window !== 'undefined' && (window as any).electron) && (
                 <>
                   <button
                     onClick={toggleAlwaysOnTop}
@@ -302,6 +315,7 @@ function PomodoroAppContent({
             onSettingsChange={updateSettings}
             t={t}
             isBillable={isBillable}
+            onSyncClaude={syncClaude}
           />
         )}
       </main>
