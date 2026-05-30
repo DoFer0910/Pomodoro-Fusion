@@ -38,6 +38,7 @@ interface StatsViewProps {
 }
 
 import { useProjects } from "@/hooks/use-projects"
+import { resolveSessionOverlaps } from "@/lib/session-overlap"
 
 export function StatsView({ sessions, settings, isBillable, t, onSettingsChange }: StatsViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -45,10 +46,15 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
   const [tempGoal, setTempGoal] = useState("")
   const { projects } = useProjects()
 
+  // タイマー（pomodoro）と Claude Code の作業時間が同じ時間帯で二重計上されないよう、
+  // isBillable で絞る前の全セッションに対して時間帯の重なりを相殺する。
+  // claude-code を真とし、重なる pomodoro 区間を duration から差し引く（lib/session-overlap.ts）。
+  const resolvedSessions = useMemo(() => resolveSessionOverlaps(sessions), [sessions])
+
   // Filter sessions based on current mode
   const filteredSessions = useMemo(() => {
-    return sessions.filter(s => s.isBillable === isBillable)
-  }, [sessions, isBillable])
+    return resolvedSessions.filter(s => s.isBillable === isBillable)
+  }, [resolvedSessions, isBillable])
 
   const calculateSessionEarnings = (session: Session) => {
     let rate = settings.defaultHourlyRate
