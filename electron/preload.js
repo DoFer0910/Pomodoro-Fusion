@@ -10,4 +10,5 @@ contextBridge.exposeInMainWorld('electron', {
     maximize: () => ipcRenderer.invoke('window:maximize'),
     setBounds: (bounds) => ipcRenderer.invoke('window:set-bounds', bounds),
     close: () => ipcRenderer.invoke('window:close'),
+    scanClaudeSessions: () => ipcRenderer.invoke('claude:scan-sessions'),
 });
