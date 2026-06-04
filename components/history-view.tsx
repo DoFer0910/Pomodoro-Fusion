@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import type { Session, Settings } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useProjects } from "@/hooks/use-projects"
 import { ManualEntryDialog } from "./manual-entry-dialog"
 import { EditSessionDialog } from "./edit-session-dialog"
@@ -27,6 +28,8 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
   const [editingSession, setEditingSession] = useState<Session | null>(null)
   // 選択中の月を "YYYY-MM" 形式で保持する（null = まだ初期化前）
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
+  // 選択中のプロジェクト（"all" = すべて, "none" = プロジェクトなし, それ以外は projectId）
+  const [selectedProjectFilter, setSelectedProjectFilter] = useState<string>("all")
   const itemsPerPage = 10
   const { projects } = useProjects()
 
@@ -43,14 +46,34 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
       .sort((a, b) => b.timestamp - a.timestamp)
   }, [sessions, isBillable])
 
-  // セッションが存在する月キーの一覧（新しい順）
+  // プロジェクトでも絞り込む（月の算出・表示の基準にする）
+  // "all" は全件、"none" はプロジェクト未設定、それ以外は projectId 一致
+  const filteredSessions = useMemo(() => {
+    if (selectedProjectFilter === "all") return modeSessions
+    if (selectedProjectFilter === "none") return modeSessions.filter((s) => !s.projectId)
+    return modeSessions.filter((s) => s.projectId === selectedProjectFilter)
+  }, [modeSessions, selectedProjectFilter])
+
+  // フィルタUIに出すプロジェクト一覧：現在のモードのセッションに実際に登場するものだけ
+  const projectsInScope = useMemo(() => {
+    const ids = new Set<string>()
+    let hasNoProject = false
+    for (const s of modeSessions) {
+      if (s.projectId) ids.add(s.projectId)
+      else hasNoProject = true
+    }
+    const list = projects.filter((p) => ids.has(p.id))
+    return { list, hasNoProject }
+  }, [modeSessions, projects])
+
+  // セッションが存在する月キーの一覧（新しい順）— プロジェクト絞り込み後を基準にする
   const availableMonths = useMemo(() => {
     const set = new Set<string>()
-    for (const s of modeSessions) {
+    for (const s of filteredSessions) {
       set.add(toMonthKey(s.timestamp))
     }
     return Array.from(set).sort((a, b) => b.localeCompare(a))
-  }, [modeSessions])
+  }, [filteredSessions])
 
   // 初期月の決定 / 選択中の月がデータから消えた場合の補正
   useEffect(() => {
@@ -67,11 +90,11 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
     }
   }, [availableMonths, selectedMonth])
 
-  // 選択中の月のセッションだけを抽出（件数上限なし）
+  // 選択中の月のセッションだけを抽出（件数上限なし）。プロジェクト絞り込み後を基準にする
   const displaySessions = useMemo(() => {
     if (!selectedMonth) return []
-    return modeSessions.filter((s) => toMonthKey(s.timestamp) === selectedMonth)
-  }, [modeSessions, selectedMonth])
+    return filteredSessions.filter((s) => toMonthKey(s.timestamp) === selectedMonth)
+  }, [filteredSessions, selectedMonth])
 
   // 前月・翌月へ移動できるか（データのある月だけ辿れる）
   const monthIndex = selectedMonth ? availableMonths.indexOf(selectedMonth) : -1
@@ -86,11 +109,11 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
     if (canGoNewer) setSelectedMonth(availableMonths[monthIndex - 1])
   }
 
-  // 月切替時はページと選択をリセット
+  // 月・プロジェクト切替時はページと選択をリセット
   useEffect(() => {
     setCurrentPage(1)
     setSelectedIds(new Set())
-  }, [selectedMonth])
+  }, [selectedMonth, selectedProjectFilter])
 
   // 表示用の "YYYY年M月" / "Month YYYY" ラベル
   const formatMonthLabel = (monthKey: string) => {
@@ -235,6 +258,31 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
           <ChevronRight className="w-4 h-4" />
         </Button>
       </div>
+
+      {/* プロジェクトフィルタ：このモードに実際に登場するプロジェクトがある場合のみ表示 */}
+      {(projectsInScope.list.length > 0 || projectsInScope.hasNoProject) && (
+        <div className="flex items-center justify-center shrink-0">
+          <Select value={selectedProjectFilter} onValueChange={setSelectedProjectFilter}>
+            <SelectTrigger className="h-8 w-[200px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">{t.allProjects || "All Projects"}</SelectItem>
+              {projectsInScope.hasNoProject && (
+                <SelectItem value="none">{t.noProject || "No Project"}</SelectItem>
+              )}
+              {projectsInScope.list.map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  <span className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                    <span className="truncate">{p.name}</span>
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <ManualEntryDialog
         open={isManualEntryOpen}

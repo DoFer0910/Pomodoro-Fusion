@@ -98,6 +98,7 @@ export const translations = {
     repoBillableHint: "リポジトリごとに、その時間を収益として計上するか没頭モードに換算するかを選べます",
     selectProject: "プロジェクトを選択...",
     noProject: "プロジェクトなし",
+    allProjects: "すべてのプロジェクト",
     defaultHourlyRate: "デフォルト時給",
     defaultHourlyRateDesc: "プロジェクトが選択されていない場合に適用される時給です。",
 
@@ -217,6 +218,7 @@ export const translations = {
     repoBillableHint: "Choose per repository whether its time counts as earnings or as focus mode",
     selectProject: "Select Project...",
     noProject: "No Project",
+    allProjects: "All Projects",
     defaultHourlyRate: "Default Hourly Rate",
     defaultHourlyRateDesc: "This rate is used when no specific project is selected.",
 
