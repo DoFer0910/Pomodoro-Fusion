@@ -191,6 +191,21 @@ export function mergeClaudeSessions(
 }
 
 /**
+ * Electron main プロセスへ Claude Code ログのスキャンを依頼し、結果を返す。
+ * window.electron.scanClaudeSessions が無い環境（ブラウザ）では空配列。
+ * スキャン（IPC）とマージ（純粋関数）を分離しておくことで、呼び出し側は
+ * 「スキャン結果を、保存直前の最新セッションへマージする」直列化が可能になる。
+ */
+export async function scanClaudeSessions(): Promise<ClaudeScanResult[]> {
+  const electron = (typeof window !== "undefined" && (window as any).electron) || null
+  if (!electron || typeof electron.scanClaudeSessions !== "function") {
+    return []
+  }
+  const results: ClaudeScanResult[] = await electron.scanClaudeSessions()
+  return results || []
+}
+
+/**
  * Electron main プロセスへスキャンを依頼し、結果を既存セッションへマージする。
  * window.electron.scanClaudeSessions が無い環境（ブラウザ）では何もしない。
  */
@@ -198,14 +213,12 @@ export async function syncClaudeSessions(
   projects: Project[],
   existingSessions: Session[],
 ): Promise<SyncOutcome> {
-  const electron = (typeof window !== "undefined" && (window as any).electron) || null
-  if (!electron || typeof electron.scanClaudeSessions !== "function") {
+  const results = await scanClaudeSessions()
+  if (results.length === 0) {
     return {
       sessions: existingSessions,
       summary: { added: 0, updated: 0, unmatched: 0 },
     }
   }
-
-  const results: ClaudeScanResult[] = await electron.scanClaudeSessions()
-  return mergeClaudeSessions(results || [], projects, existingSessions)
+  return mergeClaudeSessions(results, projects, existingSessions)
 }

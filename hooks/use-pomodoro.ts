@@ -4,11 +4,15 @@ import {
     getSettings,
     saveSettings as persistSettings,
     getSessions,
-    saveSessions as persistSessions,
     addSession as persistSession,
+    mutateSessions,
     getProjects
 } from "@/lib/storage"
-import { syncClaudeSessions, type SyncSummary } from "@/lib/claude-sync"
+import {
+    scanClaudeSessions,
+    mergeClaudeSessions,
+    type SyncSummary,
+} from "@/lib/claude-sync"
 
 export function usePomodoro() {
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -112,11 +116,14 @@ export function usePomodoro() {
 
     const deleteSessions = useCallback(
         async (ids: string[]) => {
-            const newSessions = sessions.filter((s) => !ids.includes(s.id))
-            setSessions(newSessions)
-            await persistSessions(newSessions)
+            const idSet = new Set(ids)
+            // 保存直前の最新セッションから削除する（他操作との直列化で lost update を防ぐ）
+            const next = await mutateSessions((current) =>
+                current.filter((s) => !idSet.has(s.id)),
+            )
+            setSessions(next)
         },
-        [sessions],
+        [],
     )
 
     const updateSession = useCallback(
@@ -130,30 +137,40 @@ export function usePomodoro() {
                 status: "completed" | "interrupted"
             }
         ) => {
-            const newSessions = sessions.map(s => {
-                if (s.id === id) {
-                    return { ...s, ...updates }
-                }
-                return s
-            }).sort((a, b) => b.timestamp - a.timestamp)
-
-            setSessions(newSessions)
-            await persistSessions(newSessions)
+            // 保存直前の最新セッションを起点に更新する（他操作との直列化で lost update を防ぐ）
+            const next = await mutateSessions((current) =>
+                current
+                    .map((s) => (s.id === id ? { ...s, ...updates } : s))
+                    .sort((a, b) => b.timestamp - a.timestamp),
+            )
+            setSessions(next)
         },
-        [sessions]
+        []
     )
 
     // Claude Code ログをスキャンし、登録 Project に紐づくセッションを冪等に取り込む。
     // 取り込んだ結果を永続化して state に反映し、サマリ（追加/更新/未マッチ件数）を返す。
     const syncClaude = useCallback(async (): Promise<SyncSummary> => {
         const projects = await getProjects()
-        const current = await getSessions()
-        const { sessions: merged, summary } = await syncClaudeSessions(projects, current)
+        // スキャン（IPC）は時間がかかるため先に実行し、マージと保存は
+        // mutateSessions 内で「保存直前の最新セッション」に対して行う。
+        // こうすることで、スキャン中にタイマー完了の addSession が走っても、
+        // その追加分を巻き戻さずにマージできる（lost update 防止）。
+        const results = await scanClaudeSessions()
+
+        let summary: SyncSummary = { added: 0, updated: 0, unmatched: 0 }
+        const next = await mutateSessions((current) => {
+            const outcome = mergeClaudeSessions(results, projects, current)
+            summary = outcome.summary
+            if (outcome.summary.added === 0 && outcome.summary.updated === 0) {
+                // 変化なしなら現状をそのまま返し、無意味な再保存を避ける
+                return current
+            }
+            return [...outcome.sessions].sort((a, b) => b.timestamp - a.timestamp)
+        })
 
         if (summary.added > 0 || summary.updated > 0) {
-            const sorted = [...merged].sort((a, b) => b.timestamp - a.timestamp)
-            setSessions(sorted)
-            await persistSessions(sorted)
+            setSessions(next)
         }
 
         return summary

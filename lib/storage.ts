@@ -17,6 +17,34 @@ export async function saveSessions(sessions: Session[]): Promise<void> {
   await storage.set(SESSIONS_KEY, sessions)
 }
 
+// セッションは複数の操作（addSession / syncClaude / updateSession / deleteSessions /
+// deleteProject）がいずれも「全件を読む → 加工 → 全件を上書き保存」する read-modify-write。
+// これらが並行すると、片方が相手の保存前の古いスナップショットを起点に全件上書きし、
+// 相手の変更を消してしまう（lost update）。特にタイマー完了の addSession と
+// Claude Code 同期が重なると履歴が消える症状が出る。
+// そこで read+modify+write を不可分な単位として 1 本のキューで直列化する。
+let sessionWriteChain: Promise<unknown> = Promise.resolve()
+
+/**
+ * 現在のセッション全件を読み、mutator で次の状態を作り、保存する一連の処理を
+ * 他のセッション書き込みと直列化して実行する。read と write の間に他の書き込みが
+ * 割り込まないことを保証するため、lost update を防げる。
+ * mutator が返した配列を保存し、その配列を呼び出し元へも返す（state 反映用）。
+ */
+export async function mutateSessions(
+  mutator: (current: Session[]) => Session[] | Promise<Session[]>,
+): Promise<Session[]> {
+  const run = sessionWriteChain.then(async () => {
+    const current = await getSessions()
+    const next = await mutator(current)
+    await saveSessions(next)
+    return next
+  })
+  // チェーン自体は失敗を握りつぶして次の処理へ進ませ、結果（と例外）は呼び出し元へ返す。
+  sessionWriteChain = run.catch(() => {})
+  return run
+}
+
 export async function getTodos(): Promise<Todo[]> {
   const storage = getStorage()
   const data = await storage.get<Todo[]>(TODOS_KEY)
@@ -29,9 +57,7 @@ export async function saveTodos(todos: Todo[]): Promise<void> {
 }
 
 export async function addSession(session: Session): Promise<void> {
-  const sessions = await getSessions()
-  sessions.unshift(session)
-  await saveSessions(sessions)
+  await mutateSessions((current) => [session, ...current])
 }
 
 export async function getSettings(): Promise<Settings> {
@@ -73,19 +99,12 @@ export async function updateProject(project: Project): Promise<void> {
 
 export async function deleteProject(id: string): Promise<void> {
   // 1. Anonymize sessions (unlink from project)
-  const sessions = await getSessions()
-  let sessionsChanged = false
-  const updatedSessions = sessions.map(session => {
-    if (session.projectId === id) {
-      sessionsChanged = true
-      return { ...session, projectId: undefined }
-    }
-    return session
-  })
-
-  if (sessionsChanged) {
-    await saveSessions(updatedSessions)
-  }
+  // セッションの読み書きは他操作と直列化する（lost update 防止）。
+  await mutateSessions((sessions) =>
+    sessions.map((session) =>
+      session.projectId === id ? { ...session, projectId: undefined } : session,
+    ),
+  )
 
   // 2. Anonymize or delete todos linked to project?
   // Current requirement only mentioned sessions, but todos should probably be kept or deleted.
