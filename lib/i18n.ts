@@ -32,6 +32,7 @@ export const translations = {
     // History
     history: "履歴",
     noHistory: "履歴がありません",
+    noHistoryThisMonth: "この月の履歴はありません",
     deleteSelected: "選択を削除",
     selectAll: "すべて選択",
     earned: "獲得",
@@ -150,6 +151,7 @@ export const translations = {
     // History
     history: "History",
     noHistory: "No history yet",
+    noHistoryThisMonth: "No history this month",
     deleteSelected: "Delete Selected",
     selectAll: "Select All",
     earned: "Earned",

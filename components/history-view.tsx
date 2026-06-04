@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Trash2, CheckSquare, Square, ChevronLeft, ChevronRight, Plus, Pencil } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Session, Settings } from "@/lib/types"
@@ -25,17 +25,82 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
   const [currentPage, setCurrentPage] = useState(1)
   const [isManualEntryOpen, setIsManualEntryOpen] = useState(false)
   const [editingSession, setEditingSession] = useState<Session | null>(null)
+  // 選択中の月を "YYYY-MM" 形式で保持する（null = まだ初期化前）
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null)
   const itemsPerPage = 10
-  const maxItems = 100
   const { projects } = useProjects()
 
-  // Filter and sort sessions - Global list (up to maxItems)
-  const displaySessions = useMemo(() => {
+  // timestamp から "YYYY-MM" のキーを作る
+  const toMonthKey = (timestamp: number) => {
+    const d = new Date(timestamp)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+  }
+
+  // 現在のモードに該当するセッションを新しい順にソート
+  const modeSessions = useMemo(() => {
     return sessions
-      .filter((s) => s.isBillable === isBillable) // Filter by current mode
+      .filter((s) => s.isBillable === isBillable) // 現在のモードで絞り込み
       .sort((a, b) => b.timestamp - a.timestamp)
-      .slice(0, maxItems)
   }, [sessions, isBillable])
+
+  // セッションが存在する月キーの一覧（新しい順）
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of modeSessions) {
+      set.add(toMonthKey(s.timestamp))
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a))
+  }, [modeSessions])
+
+  // 初期月の決定 / 選択中の月がデータから消えた場合の補正
+  useEffect(() => {
+    if (availableMonths.length === 0) {
+      // データが無い月でも今月を表示できるよう、現在月を設定
+      const now = new Date()
+      const nowKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+      if (selectedMonth !== nowKey) setSelectedMonth(nowKey)
+      return
+    }
+    // 未初期化、または選択中の月にデータが無い場合は最新月へ
+    if (selectedMonth === null || !availableMonths.includes(selectedMonth)) {
+      setSelectedMonth(availableMonths[0])
+    }
+  }, [availableMonths, selectedMonth])
+
+  // 選択中の月のセッションだけを抽出（件数上限なし）
+  const displaySessions = useMemo(() => {
+    if (!selectedMonth) return []
+    return modeSessions.filter((s) => toMonthKey(s.timestamp) === selectedMonth)
+  }, [modeSessions, selectedMonth])
+
+  // 前月・翌月へ移動できるか（データのある月だけ辿れる）
+  const monthIndex = selectedMonth ? availableMonths.indexOf(selectedMonth) : -1
+  // availableMonths は新しい順なので、index+1 がより古い月、index-1 がより新しい月
+  const canGoOlder = monthIndex >= 0 && monthIndex < availableMonths.length - 1
+  const canGoNewer = monthIndex > 0
+
+  const goOlderMonth = () => {
+    if (canGoOlder) setSelectedMonth(availableMonths[monthIndex + 1])
+  }
+  const goNewerMonth = () => {
+    if (canGoNewer) setSelectedMonth(availableMonths[monthIndex - 1])
+  }
+
+  // 月切替時はページと選択をリセット
+  useEffect(() => {
+    setCurrentPage(1)
+    setSelectedIds(new Set())
+  }, [selectedMonth])
+
+  // 表示用の "YYYY年M月" / "Month YYYY" ラベル
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split("-").map(Number)
+    if (settings.language === "ja") {
+      return `${year}年${month}月`
+    }
+    const date = new Date(year, month - 1, 1)
+    return date.toLocaleDateString("en-US", { year: "numeric", month: "long" })
+  }
 
   // Pagination logic
   const totalPages = Math.ceil(displaySessions.length / itemsPerPage)
@@ -146,6 +211,31 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
         )}
       </div>
 
+      {/* 月の切替バー：データのある月だけを前後の矢印で辿る */}
+      <div className="flex items-center justify-center gap-3 shrink-0">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={goOlderMonth}
+          disabled={!canGoOlder}
+          className="h-8 w-8 p-0"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </Button>
+        <span className="text-sm font-medium text-foreground min-w-[110px] text-center tabular-nums">
+          {selectedMonth ? formatMonthLabel(selectedMonth) : ""}
+        </span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={goNewerMonth}
+          disabled={!canGoNewer}
+          className="h-8 w-8 p-0"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </Button>
+      </div>
+
       <ManualEntryDialog
         open={isManualEntryOpen}
         onOpenChange={setIsManualEntryOpen}
@@ -164,7 +254,7 @@ export function HistoryView({ sessions, settings, onDeleteSessions, addSession, 
       {paginatedSessions.length === 0 ? (
         <Card className="bg-card border-border">
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">{t.noHistory}</p>
+            <p className="text-muted-foreground">{t.noHistoryThisMonth || t.noHistory}</p>
           </CardContent>
         </Card>
       ) : (
