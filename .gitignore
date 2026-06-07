@@ -28,3 +28,7 @@ build_error*.log
 next-env.d.ts
 dist/
 out/
+
+# agent 設定（配布リポジトリには公開しない）
+.agent/
+AGENTS.md
