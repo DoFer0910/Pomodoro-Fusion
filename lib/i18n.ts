@@ -77,6 +77,12 @@ export const translations = {
     onTrack: "このペースで達成可能",
     behindPace: "ペースが不足",
 
+    // Idle detection
+    idleDetection: "離席を検知して自動一時停止",
+    idleThreshold: "離席とみなす時間",
+    notifyIdleTitle: "離席を検知しました",
+    notifyIdleBody: "タイマーを一時停止しました。戻ったら再開してください。",
+
 
     // Data Management
     dataManagement: "データ管理",
@@ -216,6 +222,12 @@ export const translations = {
     projectedThisMonth: "Projected",
     onTrack: "On track to hit goal",
     behindPace: "Behind pace",
+
+    // Idle detection
+    idleDetection: "Auto-pause on idle",
+    idleThreshold: "Idle threshold",
+    notifyIdleTitle: "Idle detected",
+    notifyIdleBody: "Timer paused. Resume when you're back.",
 
 
     // Data Management

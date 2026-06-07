@@ -20,4 +20,11 @@ contextBridge.exposeInMainWorld('electron', {
         ipcRenderer.on('shortcut:action', listener);
         return () => ipcRenderer.removeListener('shortcut:action', listener);
     },
+    configureIdle: (config) => ipcRenderer.invoke('idle:configure', config),
+    // 離席検知の通知。返り値は解除関数。
+    onIdleDetected: (callback) => {
+        const listener = (_event, idleSeconds) => callback(idleSeconds);
+        ipcRenderer.on('idle:detected', listener);
+        return () => ipcRenderer.removeListener('idle:detected', listener);
+    },
 });

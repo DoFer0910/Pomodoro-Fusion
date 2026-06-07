@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, globalShortcut, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, globalShortcut, nativeImage, powerMonitor } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -32,6 +32,37 @@ let trayLabels = {
 function sendShortcutAction(action) {
     if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('shortcut:action', action);
+    }
+}
+
+// --- 離席（アイドル）検知 ---
+// powerMonitor.getSystemIdleTime() で OS の無操作秒数を監視し、閾値を超えたらレンダラーへ通知する。
+// 実際にタイマーを止めるかどうかはレンダラー側（作業中かどうかを知っている）が判断する。
+let idlePollTimer = null;
+let idleThresholdSeconds = 300; // 既定5分。レンダラーから設定で上書きする。
+let idleNotified = false; // 同一離席で何度も通知しないためのフラグ。
+
+function startIdleMonitor() {
+    if (idlePollTimer) return;
+    idlePollTimer = setInterval(() => {
+        if (!mainWindow || mainWindow.isDestroyed()) return;
+        const idleSeconds = powerMonitor.getSystemIdleTime();
+        if (idleSeconds >= idleThresholdSeconds) {
+            if (!idleNotified) {
+                idleNotified = true;
+                mainWindow.webContents.send('idle:detected', idleSeconds);
+            }
+        } else {
+            // 操作が戻ったら次の離席に備えてフラグを解除する。
+            idleNotified = false;
+        }
+    }, 15000); // 15秒間隔。秒単位の精度は不要なので軽めにポーリングする。
+}
+
+function stopIdleMonitor() {
+    if (idlePollTimer) {
+        clearInterval(idlePollTimer);
+        idlePollTimer = null;
     }
 }
 
@@ -124,15 +155,31 @@ app.whenReady().then(() => {
     createWindow();
     createTray();
     registerGlobalShortcuts();
+    startIdleMonitor();
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
 
-// アプリ終了時にグローバルショートカットを解放する（OS に登録が残らないようにする）。
+// アプリ終了時にグローバルショートカットを解放し、アイドル監視を止める。
 app.on('will-quit', () => {
     globalShortcut.unregisterAll();
+    stopIdleMonitor();
+});
+
+// レンダラーから離席検知の有効/無効と閾値（分）を受け取る。
+ipcMain.handle('idle:configure', async (event, config) => {
+    if (!config) return;
+    const { enabled, thresholdMinutes } = config;
+    if (typeof thresholdMinutes === 'number' && thresholdMinutes > 0) {
+        idleThresholdSeconds = Math.round(thresholdMinutes * 60);
+    }
+    if (enabled) {
+        startIdleMonitor();
+    } else {
+        stopIdleMonitor();
+    }
 });
 
 app.on('window-all-closed', function () {

@@ -14,6 +14,9 @@ interface ElectronTimerAPI {
         labels: { show: string; startPause: string; quit: string; tooltip: string }
     }) => void
     onShortcutAction?: (callback: (action: string) => void) => () => void
+    configureIdle?: (config: { enabled: boolean; thresholdMinutes: number }) => void
+    onIdleDetected?: (callback: (idleSeconds: number) => void) => () => void
+    showNotification?: (title: string, body: string) => void
 }
 
 function getElectron(): ElectronTimerAPI | undefined {
@@ -138,6 +141,30 @@ export function TimerProvider({ settings, sessions, todos, onSessionComplete, ch
         })
         return unsubscribe
     }, [timer.isRunning, timer.handlePause, timer.handleStart, timer.handleSkip])
+
+    // 離席検知の設定（有効/閾値）をメインプロセスへ送る。設定変更に追従する。
+    React.useEffect(() => {
+        const electron = getElectron()
+        if (!electron?.configureIdle) return
+        electron.configureIdle({
+            enabled: settings.idleDetectionEnabled,
+            thresholdMinutes: settings.idleThresholdMinutes,
+        })
+    }, [settings.idleDetectionEnabled, settings.idleThresholdMinutes])
+
+    // 離席検知時の自動一時停止。作業中（実行中かつ休憩でない）のときだけ止めて通知する。
+    React.useEffect(() => {
+        const electron = getElectron()
+        if (!electron?.onIdleDetected) return
+        const unsubscribe = electron.onIdleDetected(() => {
+            if (timer.isRunning && !timer.isBreak) {
+                timer.handlePause()
+                const t = translations[settings.language]
+                electron.showNotification?.(t.notifyIdleTitle, t.notifyIdleBody)
+            }
+        })
+        return unsubscribe
+    }, [timer.isRunning, timer.isBreak, timer.handlePause, settings.language])
 
     const value = {
         ...timer,

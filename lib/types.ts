@@ -58,6 +58,10 @@ export interface Settings {
   countInterruptedSessions: boolean
   monthlyGoals: Record<string, number>
   hideMoneyCount: boolean
+  /** 離席（無操作）を検知して作業タイマーを自動一時停止するか */
+  idleDetectionEnabled: boolean
+  /** 離席とみなす無操作の分数 */
+  idleThresholdMinutes: number
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -73,4 +77,6 @@ export const DEFAULT_SETTINGS: Settings = {
   countInterruptedSessions: true,
   monthlyGoals: {},
   hideMoneyCount: false,
+  idleDetectionEnabled: true,
+  idleThresholdMinutes: 5,
 }

@@ -198,6 +198,34 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
             />
           </div>
 
+          <div className="flex items-center justify-between space-x-2">
+            <Label htmlFor="idleDetection" className="flex flex-col space-y-1">
+              <span>{t.idleDetection}</span>
+            </Label>
+            <Switch
+              id="idleDetection"
+              checked={formData.idleDetectionEnabled}
+              onCheckedChange={(checked) => setFormData({ ...formData, idleDetectionEnabled: checked })}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+
+          {formData.idleDetectionEnabled && (
+            <div className="space-y-2">
+              <Label htmlFor="idleThreshold" className="text-muted-foreground">
+                {t.idleThreshold} ({t.minutes})
+              </Label>
+              <Input
+                id="idleThreshold"
+                type="number"
+                min={1}
+                value={formData.idleThresholdMinutes}
+                onChange={(e) => setFormData({ ...formData, idleThresholdMinutes: Number(e.target.value) })}
+                className="bg-input border-border"
+              />
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="alarmSound">{t.alarmSound}</Label>
             <Select
