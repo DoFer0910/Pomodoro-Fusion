@@ -1,6 +1,8 @@
 {
-  "name": "my-v0-project",
+  "name": "yield",
   "version": "0.3.20",
+  "description": "請求可能な時間と集中を追跡するデスクトップ型ポモドーロタイマー",
+  "author": "Yield",
   "main": "electron/main.js",
   "private": true,
   "scripts": {
@@ -94,10 +96,24 @@
       "package.json"
     ],
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "DoFer0910",
+      "repo": "Pomodoro-Fusion"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Yield"
     }
   }
 }
