@@ -67,6 +67,11 @@ export const translations = {
     trayQuit: "終了",
     trayTooltipIdle: "イールド - 停止中",
 
+    // Streak
+    currentStreak: "連続",
+    longestStreak: "最長",
+    streakDays: "日",
+
 
     // Data Management
     dataManagement: "データ管理",
@@ -196,6 +201,11 @@ export const translations = {
     trayStartPause: "Start / Pause",
     trayQuit: "Quit",
     trayTooltipIdle: "Yield - Idle",
+
+    // Streak
+    currentStreak: "Streak",
+    longestStreak: "Longest",
+    streakDays: "d",
 
 
     // Data Management

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History, Bot } from "lucide-react"
+import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History, Bot, Flame } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -39,6 +39,7 @@ interface StatsViewProps {
 
 import { useProjects } from "@/hooks/use-projects"
 import { resolveSessionOverlaps } from "@/lib/session-overlap"
+import { calculateStreak } from "@/lib/streak"
 
 export function StatsView({ sessions, settings, isBillable, t, onSettingsChange }: StatsViewProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -197,6 +198,14 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       totalEarnings,
     }
   }, [sessions, selectedDate, projects, settings, isBillable])
+
+  // 連続作業日数（ストリーク）。月選択に依存しない全期間ベースで、現在のモードのセッションから算出する。
+  const streak = useMemo(() => {
+    const target = filteredSessions.filter(
+      (s) => s.status === "completed" || (settings.countInterruptedSessions && s.status === "interrupted")
+    )
+    return calculateStreak(target)
+  }, [filteredSessions, settings.countInterruptedSessions])
 
   const handleSaveGoal = () => {
     const newGoal = parseInt(tempGoal, 10)
@@ -607,10 +616,30 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
         {/* Heatmap (Span 4) */}
         <Card className="col-span-1 md:col-span-2 lg:col-span-4 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm">
           <CardHeader className="pb-4">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <CalendarIcon className="w-4 h-4" />
-              {t.activityMap}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <CalendarIcon className="w-4 h-4" />
+                {t.activityMap}
+              </CardTitle>
+              {/* 連続作業日数。現在の連続が1日以上あるときだけ強調表示する。 */}
+              <div className="flex items-center gap-3 text-xs">
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium",
+                    streak.current > 0
+                      ? "bg-orange-500/10 text-orange-500"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                  title={t.currentStreak}
+                >
+                  <Flame className="w-3.5 h-3.5" />
+                  {streak.current}{t.streakDays}
+                </span>
+                <span className="text-muted-foreground" title={t.longestStreak}>
+                  {t.longestStreak} {streak.longest}{t.streakDays}
+                </span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <HeatmapCalendar sessions={filteredSessions} isBillable={isBillable} />
