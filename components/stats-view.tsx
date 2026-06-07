@@ -171,7 +171,9 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
   }, [filteredSessions, settings, selectedDate, projects])
 
   // Claude Code セッションの当月集計（独立表示用）。
-  // 既存の月次集計とは別に、source === "claude-code" のみを抽出して時間・収益を出す。
+  // メインの月次集計と同じく現在のモード（isBillable）で絞り込む。
+  // こうしないと、収益登録リポジトリの Claude Code 時間が没頭モードのカードにも
+  // 表示されてしまい、収益/没頭の区別が付かなくなる。
   const claudeStats = useMemo(() => {
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
@@ -181,6 +183,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     const claudeSessions = sessions.filter(
       (s) =>
         s.source === "claude-code" &&
+        s.isBillable === isBillable &&
         s.timestamp >= startOfMonth &&
         s.timestamp <= endOfMonth
     )
@@ -193,7 +196,7 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       totalDuration,
       totalEarnings,
     }
-  }, [sessions, selectedDate, projects, settings])
+  }, [sessions, selectedDate, projects, settings, isBillable])
 
   const handleSaveGoal = () => {
     const newGoal = parseInt(tempGoal, 10)
