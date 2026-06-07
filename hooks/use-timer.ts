@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import type { Settings } from "@/lib/types"
+import { playAlarm as playAlarmSound, warmUpAlarm } from "@/lib/alarm"
 
 interface UseTimerProps {
     settings: Settings
@@ -31,8 +32,7 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
     }, [settings.workDuration, settings.breakDuration, isBreak])
 
     const playAlarm = useCallback(() => {
-        if (settings.alarmSound === "none") return
-        // Placeholder for sound playing
+        playAlarmSound(settings.alarmSound)
     }, [settings.alarmSound])
 
     useEffect(() => {
@@ -92,6 +92,10 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
     }, [isBreak, isOvertime, timeLeft, settings, onSessionComplete, setIsBreak])
 
     const handleStart = useCallback(() => {
+        // タイマー開始はユーザー操作なので、ここで AudioContext を起こしておくと
+        // 後でタイマーが自動でゼロに達したとき（ユーザー操作の無い瞬間）でも音を鳴らせる。
+        warmUpAlarm()
+
         if (timeLeft <= 0 && !isOvertime) {
             if (isBreak) {
                 setTimeLeft(settings.breakDuration * 60)
