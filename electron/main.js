@@ -22,6 +22,9 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        // フレームレスのため枠アイコンは出ないが、タスクバー / Alt+Tab 表示に使われる。
+        // build/ は配布物に同梱されないため electron/ 配下の ico を参照する。
+        icon: path.join(__dirname, 'icon.ico'),
         backgroundColor: '#00000000', // Transparent background
         frame: false, // Frameless for custom title bar & compact mode
         transparent: true, // Allow transparency

@@ -8,7 +8,7 @@
 /out/
 
 # production
-/build
+# 注: /build は electron-builder の buildResources（アイコン等）に使うため追跡する
 
 # debug
 npm-debug.log*
