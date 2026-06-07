@@ -152,6 +152,13 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+    // Windows のトースト通知には AppUserModelID が必須。未設定だと OS が発行元を特定できず
+    // notification.show() を呼んでも通知がサイレントに破棄される（特に開発モード）。
+    // package.json の build.appId と同じ値にしてインストール版のショートカットとも整合させる。
+    if (process.platform === 'win32') {
+        app.setAppUserModelId('com.pomodoro.fusion');
+    }
+
     createWindow();
     createTray();
     registerGlobalShortcuts();
