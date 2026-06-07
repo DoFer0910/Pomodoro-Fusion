@@ -57,6 +57,16 @@ export const translations = {
     finishWork: "作業終了",
     overtime: "ボーナスタイム",
 
+    // Notifications & Tray
+    notifyWorkDoneTitle: "作業セッション完了",
+    notifyWorkDoneBody: "お疲れさまです。休憩を取りましょう。",
+    notifyBreakDoneTitle: "休憩終了",
+    notifyBreakDoneBody: "次の作業セッションを始めましょう。",
+    trayShow: "ウィンドウを表示",
+    trayStartPause: "開始 / 一時停止",
+    trayQuit: "終了",
+    trayTooltipIdle: "イールド - 停止中",
+
 
     // Data Management
     dataManagement: "データ管理",
@@ -176,6 +186,16 @@ export const translations = {
     soundNone: "None",
     finishWork: "Finish Work",
     overtime: "BONUS TIME",
+
+    // Notifications & Tray
+    notifyWorkDoneTitle: "Work session complete",
+    notifyWorkDoneBody: "Nice work. Time for a break.",
+    notifyBreakDoneTitle: "Break over",
+    notifyBreakDoneBody: "Let's start the next work session.",
+    trayShow: "Show Window",
+    trayStartPause: "Start / Pause",
+    trayQuit: "Quit",
+    trayTooltipIdle: "Yield - Idle",
 
 
     // Data Management

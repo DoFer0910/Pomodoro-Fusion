@@ -11,4 +11,5 @@ contextBridge.exposeInMainWorld('electron', {
     setBounds: (bounds) => ipcRenderer.invoke('window:set-bounds', bounds),
     close: () => ipcRenderer.invoke('window:close'),
     scanClaudeSessions: () => ipcRenderer.invoke('claude:scan-sessions'),
+    showNotification: (title, body) => ipcRenderer.invoke('notification:show', title, body),
 });

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import type { Settings } from "@/lib/types"
 import { playAlarm as playAlarmSound, warmUpAlarm } from "@/lib/alarm"
+import { showNotification } from "@/lib/notify"
+import { translations } from "@/lib/i18n"
 
 interface UseTimerProps {
     settings: Settings
@@ -35,6 +37,16 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
         playAlarmSound(settings.alarmSound)
     }, [settings.alarmSound])
 
+    // 作業/休憩の切り替わりでデスクトップ通知を出す。文言は言語設定に合わせる。
+    const notifyTransition = useCallback((kind: "workDone" | "breakDone") => {
+        const t = translations[settings.language]
+        if (kind === "workDone") {
+            showNotification(t.notifyWorkDoneTitle, t.notifyWorkDoneBody)
+        } else {
+            showNotification(t.notifyBreakDoneTitle, t.notifyBreakDoneBody)
+        }
+    }, [settings.language])
+
     useEffect(() => {
         if (isRunning) {
             intervalRef.current = setInterval(() => {
@@ -57,10 +69,12 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
                                 onSessionComplete(sessionDuration, "completed")
                                 setIsBreak(true)
                                 playAlarm()
+                                notifyTransition("workDone")
                                 return settings.breakDuration * 60
                             } else {
                                 setIsBreak(false)
                                 playAlarm()
+                                notifyTransition("breakDone")
                                 return settings.workDuration * 60
                             }
                         }
@@ -75,7 +89,7 @@ export function useTimer({ settings, isBreak, setIsBreak, onSessionComplete }: U
                 clearInterval(intervalRef.current)
             }
         }
-    }, [isRunning, isBreak, settings, onSessionComplete, playAlarm, isOvertime, setIsBreak])
+    }, [isRunning, isBreak, settings, onSessionComplete, playAlarm, notifyTransition, isOvertime, setIsBreak])
 
     const finishSession = useCallback(() => {
         if (!isBreak) {

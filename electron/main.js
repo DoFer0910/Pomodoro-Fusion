@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -184,6 +184,25 @@ ipcMain.handle('claude:scan-sessions', async () => {
         }
     }
     return results;
+});
+
+// デスクトップ通知。レンダラーが背面/最小化でもセッション切り替わりに気づけるようにする。
+ipcMain.handle('notification:show', async (event, title, body) => {
+    if (!Notification.isSupported()) return;
+    const notification = new Notification({
+        title: title || '',
+        body: body || '',
+        icon: path.join(__dirname, 'icon.ico'),
+    });
+    // 通知クリックでウィンドウを前面に出す。最小化されていれば復元する。
+    notification.on('click', () => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.show();
+            mainWindow.focus();
+        }
+    });
+    notification.show();
 });
 
 ipcMain.handle('window:set-always-on-top', async (event, flag) => {
