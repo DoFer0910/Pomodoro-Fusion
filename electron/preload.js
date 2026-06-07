@@ -12,4 +12,12 @@ contextBridge.exposeInMainWorld('electron', {
     close: () => ipcRenderer.invoke('window:close'),
     scanClaudeSessions: () => ipcRenderer.invoke('claude:scan-sessions'),
     showNotification: (title, body) => ipcRenderer.invoke('notification:show', title, body),
+    updateProgress: (payload) => ipcRenderer.invoke('progress:update', payload),
+    // メイン（Tray/グローバルショートカット）→レンダラーの操作通知。
+    // 返り値は解除関数。コンポーネントのクリーンアップで呼べるようにする。
+    onShortcutAction: (callback) => {
+        const listener = (_event, action) => callback(action);
+        ipcRenderer.on('shortcut:action', listener);
+        return () => ipcRenderer.removeListener('shortcut:action', listener);
+    },
 });

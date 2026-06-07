@@ -4,6 +4,32 @@ import React, { createContext, useContext, useState, useCallback } from "react"
 import type { Settings, Session } from "@/lib/types"
 import { useTimer } from "@/hooks/use-timer"
 import type { Todo } from "@/lib/types"
+import { translations } from "@/lib/i18n"
+
+// Electron preload で公開した API の最小型。Web 環境では undefined。
+interface ElectronTimerAPI {
+    updateProgress?: (payload: {
+        progress: number
+        isRunning: boolean
+        labels: { show: string; startPause: string; quit: string; tooltip: string }
+    }) => void
+    onShortcutAction?: (callback: (action: string) => void) => () => void
+}
+
+function getElectron(): ElectronTimerAPI | undefined {
+    if (typeof window === "undefined") return undefined
+    return (window as unknown as { electron?: ElectronTimerAPI }).electron
+}
+
+// 残り秒数を mm:ss 形式に整形する。残業中（負値）は先頭に + を付ける。
+function formatRemaining(seconds: number): string {
+    const overtime = seconds < 0
+    const abs = Math.abs(seconds)
+    const m = Math.floor(abs / 60)
+    const s = abs % 60
+    const body = `${m}:${s.toString().padStart(2, "0")}`
+    return overtime ? `+${body}` : body
+}
 
 interface TimerContextType {
     timeLeft: number
@@ -76,6 +102,42 @@ export function TimerProvider({ settings, sessions, todos, onSessionComplete, ch
         setIsBreak,
         onSessionComplete: handleSessionComplete,
     })
+
+    // タスクバー進捗バーと Tray のツールチップ/メニューをメインプロセスへ送る。
+    // 毎秒変わる timeLeft/progress に追従させる。Web 環境では electron が無いので何もしない。
+    React.useEffect(() => {
+        const electron = getElectron()
+        if (!electron?.updateProgress) return
+        const t = translations[settings.language]
+        const stateLabel = timer.isRunning
+            ? `${timer.isBreak ? t.break : t.focus} ${formatRemaining(timer.timeLeft)}`
+            : t.trayTooltipIdle
+        electron.updateProgress({
+            progress: timer.progress,
+            isRunning: timer.isRunning,
+            labels: {
+                show: t.trayShow,
+                startPause: t.trayStartPause,
+                quit: t.trayQuit,
+                tooltip: `${t.appName} - ${stateLabel}`,
+            },
+        })
+    }, [timer.progress, timer.isRunning, timer.isBreak, timer.timeLeft, settings.language])
+
+    // Tray/グローバルショートカットからの操作を受け取り、タイマーに反映する。
+    React.useEffect(() => {
+        const electron = getElectron()
+        if (!electron?.onShortcutAction) return
+        const unsubscribe = electron.onShortcutAction((action) => {
+            if (action === "toggle") {
+                if (timer.isRunning) timer.handlePause()
+                else timer.handleStart()
+            } else if (action === "skip") {
+                timer.handleSkip()
+            }
+        })
+        return unsubscribe
+    }, [timer.isRunning, timer.handlePause, timer.handleStart, timer.handleSkip])
 
     const value = {
         ...timer,

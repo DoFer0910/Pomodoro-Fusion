@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+const { app, BrowserWindow, ipcMain, Notification, Tray, Menu, globalShortcut, nativeImage } = require('electron');
 const path = require('path');
 const os = require('os');
 const fs = require('fs');
@@ -17,6 +17,58 @@ let store;
 })();
 
 let mainWindow;
+let tray = null;
+
+// Tray メニュー・ツールチップで使う文言。レンダラーから言語と残り時間を受け取って更新する。
+// 初期値（レンダラー接続前）は日本語。
+let trayLabels = {
+    show: 'ウィンドウを表示',
+    startPause: '開始 / 一時停止',
+    quit: '終了',
+    tooltip: 'イールド - 停止中',
+};
+
+// レンダラーへショートカット操作を伝える。レンダラー側で開始/一時停止などに対応する。
+function sendShortcutAction(action) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('shortcut:action', action);
+    }
+}
+
+function showMainWindow() {
+    if (!mainWindow) return;
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.show();
+    mainWindow.focus();
+}
+
+function rebuildTrayMenu() {
+    if (!tray) return;
+    const contextMenu = Menu.buildFromTemplate([
+        { label: trayLabels.show, click: showMainWindow },
+        { label: trayLabels.startPause, click: () => sendShortcutAction('toggle') },
+        { type: 'separator' },
+        { label: trayLabels.quit, click: () => app.quit() },
+    ]);
+    tray.setContextMenu(contextMenu);
+}
+
+function createTray() {
+    if (tray) return;
+    const icon = nativeImage.createFromPath(path.join(__dirname, 'icon.ico'));
+    tray = new Tray(icon);
+    tray.setToolTip(trayLabels.tooltip);
+    rebuildTrayMenu();
+    // 左クリックでウィンドウ表示（Windows の一般的な挙動に合わせる）。
+    tray.on('click', showMainWindow);
+}
+
+function registerGlobalShortcuts() {
+    // 他アプリと衝突しにくい Ctrl+Shift 系。開始/一時停止・スキップ・表示トグル。
+    globalShortcut.register('CommandOrControl+Shift+Space', () => sendShortcutAction('toggle'));
+    globalShortcut.register('CommandOrControl+Shift+Right', () => sendShortcutAction('skip'));
+    globalShortcut.register('CommandOrControl+Shift+Up', () => showMainWindow());
+}
 
 function createWindow() {
     mainWindow = new BrowserWindow({
@@ -70,10 +122,17 @@ function createWindow() {
 
 app.whenReady().then(() => {
     createWindow();
+    createTray();
+    registerGlobalShortcuts();
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
+});
+
+// アプリ終了時にグローバルショートカットを解放する（OS に登録が残らないようにする）。
+app.on('will-quit', () => {
+    globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', function () {
@@ -184,6 +243,32 @@ ipcMain.handle('claude:scan-sessions', async () => {
         }
     }
     return results;
+});
+
+// タイマー進捗の更新。レンダラーから毎秒の状態を受け取り、
+// タスクバーのプログレスバーと Tray のツールチップ/メニューを更新する。
+// payload: { progress(0-100), isRunning, remainingLabel, labels: { show, startPause, quit, tooltip } }
+ipcMain.handle('progress:update', async (event, payload) => {
+    if (!payload) return;
+    const { progress, isRunning, labels } = payload;
+
+    if (mainWindow && !mainWindow.isDestroyed()) {
+        if (isRunning && typeof progress === 'number') {
+            // setProgressBar は 0.0-1.0。進捗（経過割合）をそのまま渡す。
+            mainWindow.setProgressBar(Math.min(1, Math.max(0, progress / 100)));
+        } else {
+            // 停止中は進捗バーを消す（負値で非表示）。
+            mainWindow.setProgressBar(-1);
+        }
+    }
+
+    if (labels) {
+        trayLabels = { ...trayLabels, ...labels };
+        if (tray) {
+            tray.setToolTip(trayLabels.tooltip);
+            rebuildTrayMenu();
+        }
+    }
 });
 
 // デスクトップ通知。レンダラーが背面/最小化でもセッション切り替わりに気づけるようにする。
