@@ -1,0 +1,35 @@
+name: Release
+
+# v0.3.21 のような "v" 始まりのタグを push すると発火し、
+# Windows 上で配布用 exe をビルドして GitHub Release に公開する。
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build-and-release:
+    # Windows 向け electron-builder のビルドは Windows ランナーでのみ可能。
+    runs-on: windows-latest
+    permissions:
+      # electron-builder が Release を作成・アセットをアップロードするために必要。
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and publish
+        # --publish always で electron-builder が Release 作成からアセット
+        # アップロードまで実行する。GITHUB_TOKEN は Actions が自動発行する。
+        run: npm run build:electron -- --publish always
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
