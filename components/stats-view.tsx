@@ -158,6 +158,22 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       }))
       .sort((a, b) => isBillable ? b.earnings - a.earnings : b.duration - a.duration)
 
+    // 月末着地予測。当月のみ算出する（過去/未来月は経過日数が確定しない、または既に確定済みのため）。
+    // 「今日までの1日あたり平均収益 × 月の総日数」で月末の着地点を線形に予測する。
+    let projectedEarnings: number | null = null
+    let willReachGoal: boolean | null = null
+    if (isCurrentMonth) {
+      const elapsedDays = now.getDate() // 今日までの経過日数（今日を含む）
+      if (elapsedDays > 0 && totalEarnings > 0) {
+        const dailyAverage = totalEarnings / elapsedDays
+        projectedEarnings = Math.round(dailyAverage * daysInMonth)
+        willReachGoal = projectedEarnings >= monthlyGoal
+      } else if (totalEarnings === 0) {
+        projectedEarnings = 0
+        willReachGoal = false
+      }
+    }
+
     return {
       totalEarnings,
       totalDuration,
@@ -167,7 +183,9 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
       sessionCount: monthlySessions.length,
       monthlyGoal,
       dailyData,
-      projectStats
+      projectStats,
+      projectedEarnings,
+      willReachGoal,
     }
   }, [filteredSessions, settings, selectedDate, projects])
 
@@ -402,15 +420,32 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
                 <Progress value={monthlyStats.progress} className="h-2 bg-secondary" indicatorClassName="bg-blue-500" />
               </div>
               {monthlyStats.remainingHours > 0 ? (
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <div className="bg-background/40 rounded-md p-2 border border-border/30">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.remaining}</p>
-                    <p className="text-sm font-medium">{monthlyStats.remainingHours} {t.hours}</p>
+                <div className="space-y-2 pt-1">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-background/40 rounded-md p-2 border border-border/30">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.remaining}</p>
+                      <p className="text-sm font-medium">{monthlyStats.remainingHours} {t.hours}</p>
+                    </div>
+                    <div className="bg-background/40 rounded-md p-2 border border-border/30">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.dailyRemaining}</p>
+                      <p className="text-sm font-medium">{monthlyStats.dailyRemainingHours} {t.hours}</p>
+                    </div>
                   </div>
-                  <div className="bg-background/40 rounded-md p-2 border border-border/30">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.dailyRemaining}</p>
-                    <p className="text-sm font-medium">{monthlyStats.dailyRemainingHours} {t.hours}</p>
-                  </div>
+                  {/* 月末着地予測（当月のみ）。今のペースでの着地額と達成可否を示す。 */}
+                  {monthlyStats.projectedEarnings !== null && (
+                    <div className="bg-background/40 rounded-md p-2 border border-border/30">
+                      <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{t.projectedThisMonth}</p>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">¥{monthlyStats.projectedEarnings.toLocaleString()}</span>
+                        <span className={cn(
+                          "text-[11px] font-medium",
+                          monthlyStats.willReachGoal ? "text-green-500" : "text-amber-500"
+                        )}>
+                          {monthlyStats.willReachGoal ? t.onTrack : t.behindPace}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="flex items-center justify-center p-2 text-green-500 bg-green-500/10 rounded-md">

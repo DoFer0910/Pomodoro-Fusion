@@ -72,6 +72,11 @@ export const translations = {
     longestStreak: "最長",
     streakDays: "日",
 
+    // Pace forecast
+    projectedThisMonth: "月末着地予測",
+    onTrack: "このペースで達成可能",
+    behindPace: "ペースが不足",
+
 
     // Data Management
     dataManagement: "データ管理",
@@ -206,6 +211,11 @@ export const translations = {
     currentStreak: "Streak",
     longestStreak: "Longest",
     streakDays: "d",
+
+    // Pace forecast
+    projectedThisMonth: "Projected",
+    onTrack: "On track to hit goal",
+    behindPace: "Behind pace",
 
 
     // Data Management
