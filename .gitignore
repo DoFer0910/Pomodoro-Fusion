@@ -35,7 +35,8 @@ AGENTS.md
 .claude/
 
 # 収益化（public には含めず private/yield-pro 側で管理する）
-# 公開戦略ガイド §4・§8: 収益計画書・ライセンス検証ロジックは public リポに入れない
+# 公開戦略ガイド §4・§8: 収益計画書は public リポに入れない
+# 注: lib/license.ts は public に「スタブ」を置く（常に無料・秘密情報なし）。
+#     private/yield-pro 側がビルド時に Pro 実体で上書きする差し替え方式。
 Yield_収益計画書.md
 Yield_公開戦略ガイド.md
-lib/license.ts
