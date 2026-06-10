@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-management"
 import { toast } from "sonner"
+import { useLicense } from "@/hooks/use-license"
 
 import { ProjectList } from "./project-list"
 import type { SyncSummary } from "@/lib/claude-sync"
@@ -24,6 +25,7 @@ interface SettingsViewProps {
 
 export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncClaude }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
+  const { isPro } = useLicense()
 
   useEffect(() => {
     setFormData(settings)
@@ -42,6 +44,11 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
   }
 
   const handleExportCSV = async () => {
+    // CSV 出力は Pro 機能。非 Pro は案内トーストのみ出して処理を止める。
+    if (!isPro) {
+      toast.error(t.csvProRequired)
+      return
+    }
     const csv = await exportCSV()
     const date = new Date().toISOString().slice(0, 10)
     downloadFile(csv, `pomodoro-history-${date}.csv`, "text/csv")
@@ -295,7 +302,14 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
             </div>
 
             <div className="flex flex-col gap-2">
-              <Label className="text-muted-foreground">{t.exportCsv}</Label>
+              <Label className="text-muted-foreground flex items-center gap-2">
+                {t.exportCsv}
+                {!isPro && (
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                    {t.proBadge}
+                  </span>
+                )}
+              </Label>
               <p className="text-xs text-muted-foreground mb-2">{t.csvDesc}</p>
               <Button onClick={handleExportCSV} variant="outline" className="w-full justify-start border-border text-foreground hover:bg-muted">
                 {t.exportCsv}

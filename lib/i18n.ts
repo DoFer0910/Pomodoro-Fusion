@@ -92,6 +92,9 @@ export const translations = {
     backupDesc: "設定と履歴をJSONファイルとして保存します。",
     restoreDesc: "バックアップファイルからデータを復元します。",
     csvDesc: "履歴をCSV形式でダウンロードします。",
+    proBadge: "Pro",
+    csvProRequired: "CSV出力はPro機能です。ライセンスを有効化すると確定申告・日報・請求向けのCSVを書き出せます。",
+    projectLimitReached: "無料プランのプロジェクトは{limit}件までです。Proにアップグレードすると無制限に作成できます。",
     successImport: "データの復元に成功しました。",
     failImport: "データの復元に失敗しました。",
 
@@ -238,6 +241,9 @@ export const translations = {
     backupDesc: "Save settings and history as a JSON file.",
     restoreDesc: "Restore data from a backup file.",
     csvDesc: "Download history in CSV format.",
+    proBadge: "Pro",
+    csvProRequired: "CSV export is a Pro feature. Activate a license to export CSVs for tax filing, daily reports, and invoicing.",
+    projectLimitReached: "The free plan allows up to {limit} projects. Upgrade to Pro for unlimited projects.",
     successImport: "Data restored successfully.",
     failImport: "Failed to restore data.",
 

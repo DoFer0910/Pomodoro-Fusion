@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Pencil, Trash2, FolderOpen, RefreshCw } from "lucide-react"
 import { ProjectDialog } from "./project-dialog"
 import type { SyncSummary } from "@/lib/claude-sync"
+import { useLicense } from "@/hooks/use-license"
+import { FREE_PROJECT_LIMIT } from "@/lib/pro-limits"
 
 interface ProjectListProps {
     defaultHourlyRate: number
@@ -19,6 +21,7 @@ interface ProjectListProps {
 
 export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListProps) {
     const { projects, addProject, updateProject, deleteProject } = useProjects()
+    const { isPro } = useLicense()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
     const [editingProject, setEditingProject] = useState<Project | undefined>(undefined)
     const [isSyncing, setIsSyncing] = useState(false)
@@ -49,6 +52,12 @@ export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListP
     }
 
     const handleAdd = () => {
+        // 無料プランはプロジェクト新規作成を FREE_PROJECT_LIMIT 件までに制限する。
+        // 既存分の遡及削除はしない方針なので、上限以上のときに「新規作成」だけを止める。
+        if (!isPro && projects.length >= FREE_PROJECT_LIMIT) {
+            toast.error((t.projectLimitReached || "").replace("{limit}", String(FREE_PROJECT_LIMIT)))
+            return
+        }
         setEditingProject(undefined)
         setIsDialogOpen(true)
     }
@@ -95,6 +104,11 @@ export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListP
                     <Button size="sm" onClick={handleAdd}>
                         <Plus className="w-4 h-4 mr-1" />
                         {t.addProject}
+                        {!isPro && projects.length >= FREE_PROJECT_LIMIT && (
+                            <span className="ml-1.5 text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400">
+                                {t.proBadge}
+                            </span>
+                        )}
                     </Button>
                 </div>
             </CardHeader>
