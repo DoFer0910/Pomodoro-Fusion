@@ -107,6 +107,7 @@ export const translations = {
     licenseActivateSuccess: "Proを有効化しました。",
     licenseActivateFail: "鍵が無効です。購入時に発行された鍵を確認してください。",
     licenseDeactivated: "ライセンスを解除しました。",
+    licenseComingSoon: "Pro版は近日販売予定です。CSV出力とプロジェクトの無制限作成が解放されます。",
     successImport: "データの復元に成功しました。",
     failImport: "データの復元に失敗しました。",
 
@@ -268,6 +269,7 @@ export const translations = {
     licenseActivateSuccess: "Pro activated.",
     licenseActivateFail: "Invalid key. Please check the key issued at purchase.",
     licenseDeactivated: "License deactivated.",
+    licenseComingSoon: "Pro is coming soon. It will unlock CSV export and unlimited projects.",
     successImport: "Data restored successfully.",
     failImport: "Failed to restore data.",
 

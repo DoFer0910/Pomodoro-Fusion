@@ -12,7 +12,7 @@ import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-mana
 import { toast } from "sonner"
 import { useLicense } from "@/hooks/use-license"
 import { activateLicense, deactivateLicense } from "@/lib/license"
-import { PURCHASE_URL } from "@/lib/pro-limits"
+import { PURCHASE_URL, PURCHASE_ENABLED } from "@/lib/pro-limits"
 
 import { ProjectList } from "./project-list"
 import type { SyncSummary } from "@/lib/claude-sync"
@@ -326,7 +326,7 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
                 {t.deactivateLicense}
               </Button>
             </div>
-          ) : (
+          ) : PURCHASE_ENABLED ? (
             <div className="flex flex-col gap-3">
               <p className="text-xs text-muted-foreground">{t.licenseProDesc}</p>
               <a href={PURCHASE_URL} target="_blank" rel="noopener noreferrer">
@@ -354,6 +354,10 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
                 </div>
               </div>
             </div>
+          ) : (
+            // 販売 URL がプレースホルダの間は購入導線・鍵入力を出さず、近日販売の案内のみ。
+            // 機能ロック（CSV・プロジェクト数）はこの分岐に関係なく常に効く。
+            <p className="text-xs text-muted-foreground">{t.licenseComingSoon}</p>
           )}
         </CardContent>
       </Card>
