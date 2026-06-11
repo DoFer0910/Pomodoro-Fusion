@@ -1,6 +1,6 @@
 {
   "name": "yield",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "請求可能な時間と集中を追跡するデスクトップ型ポモドーロタイマー",
   "author": "Yield",
   "main": "electron/main.js",
