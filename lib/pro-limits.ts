@@ -8,3 +8,8 @@
 // 既存ユーザーが既にこれを超えて持っている場合は遡及的に削除しない（収益化計画の注記）。
 // 新規作成のみをこの上限でブロックする。
 export const FREE_PROJECT_LIMIT = 3
+
+// Pro 版の販売ページ URL。購入導線（設定画面のライセンスセクション）のリンク先。
+// 販売ページ（Gumroad / BOOTH）開設後に実 URL へ差し替える。プレースホルダの間も
+// リンクは表示されるが、開いても販売ページが無い点に注意（公開前に差し替える）。
+export const PURCHASE_URL = "https://example.com/yield-pro"

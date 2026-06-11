@@ -11,6 +11,8 @@ import { Switch } from "@/components/ui/switch"
 import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-management"
 import { toast } from "sonner"
 import { useLicense } from "@/hooks/use-license"
+import { activateLicense, deactivateLicense } from "@/lib/license"
+import { PURCHASE_URL } from "@/lib/pro-limits"
 
 import { ProjectList } from "./project-list"
 import type { SyncSummary } from "@/lib/claude-sync"
@@ -25,7 +27,9 @@ interface SettingsViewProps {
 
 export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncClaude }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
-  const { isPro } = useLicense()
+  const { isPro, refresh: refreshLicense } = useLicense()
+  const [licenseKeyInput, setLicenseKeyInput] = useState("")
+  const [activating, setActivating] = useState(false)
 
   useEffect(() => {
     setFormData(settings)
@@ -52,6 +56,32 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
     const csv = await exportCSV()
     const date = new Date().toISOString().slice(0, 10)
     downloadFile(csv, `pomodoro-history-${date}.csv`, "text/csv")
+  }
+
+  const handleActivateLicense = async () => {
+    const key = licenseKeyInput.trim()
+    if (!key || activating) return
+    setActivating(true)
+    try {
+      // activateLicense は public ではスタブ（常に無料を返す）、private 実体では
+      // 署名検証して正当なら保存する。どちらでも同じ呼び出しで動く。
+      const result = await activateLicense(key)
+      if (result.isPro) {
+        await refreshLicense()
+        setLicenseKeyInput("")
+        toast.success(t.licenseActivateSuccess)
+      } else {
+        toast.error(t.licenseActivateFail)
+      }
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  const handleDeactivateLicense = async () => {
+    await deactivateLicense()
+    await refreshLicense()
+    toast.success(t.licenseDeactivated)
   }
 
   const handleRestoreClick = () => {
@@ -269,6 +299,62 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
               <SelectItem value="en">English</SelectItem>
             </SelectContent>
           </Select>
+        </CardContent>
+      </Card>
+
+      <Card className="bg-card border-border">
+        <CardHeader>
+          <CardTitle className="text-base font-medium text-foreground flex items-center gap-2">
+            {t.license}
+            {isPro && (
+              <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+                {t.proBadge}
+              </span>
+            )}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isPro ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-sm font-medium text-foreground">{t.licenseActive}</p>
+              <p className="text-xs text-muted-foreground mb-2">{t.licenseActiveDesc}</p>
+              <Button
+                onClick={handleDeactivateLicense}
+                variant="outline"
+                className="w-full justify-start border-border text-foreground hover:bg-muted"
+              >
+                {t.deactivateLicense}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3">
+              <p className="text-xs text-muted-foreground">{t.licenseProDesc}</p>
+              <a href={PURCHASE_URL} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full bg-amber-500 text-white hover:bg-amber-600">
+                  {t.purchasePro}
+                </Button>
+              </a>
+              <div className="flex flex-col gap-2">
+                <Label className="text-muted-foreground">{t.licenseKeyLabel}</Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={licenseKeyInput}
+                    onChange={(e) => setLicenseKeyInput(e.target.value)}
+                    placeholder={t.licenseKeyPlaceholder}
+                    className="bg-input border-border"
+                  />
+                  <Button
+                    onClick={handleActivateLicense}
+                    disabled={!licenseKeyInput.trim() || activating}
+                    variant="outline"
+                    className="border-border text-foreground hover:bg-muted shrink-0"
+                  >
+                    {t.activateLicense}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
