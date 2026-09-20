@@ -8,18 +8,18 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Pencil, Trash2, FolderOpen, RefreshCw } from "lucide-react"
 import { ProjectDialog } from "./project-dialog"
-import type { SyncSummary } from "@/lib/claude-sync"
+import type { AgentSyncSummary } from "@/lib/agent-sync"
 import { useLicense } from "@/hooks/use-license"
 import { FREE_PROJECT_LIMIT } from "@/lib/pro-limits"
 
 interface ProjectListProps {
     defaultHourlyRate: number
     t: Record<string, string>
-    /** Claude Code ログ同期。Electron 環境でのみ渡される */
-    onSyncClaude?: () => Promise<SyncSummary>
+    /** Claude Code / Codex ログ同期。Electron 環境でのみ渡される */
+    onSyncAgents?: () => Promise<AgentSyncSummary>
 }
 
-export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListProps) {
+export function ProjectList({ defaultHourlyRate, t, onSyncAgents }: ProjectListProps) {
     const { projects, addProject, updateProject, deleteProject } = useProjects()
     const { isPro } = useLicense()
     const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -28,24 +28,37 @@ export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListP
 
     const isElectron = typeof window !== "undefined" && (window as any).electron
 
-    const handleSyncClaude = async () => {
-        if (!onSyncClaude || isSyncing) return
+    const handleSyncAgents = async () => {
+        if (!onSyncAgents || isSyncing) return
         setIsSyncing(true)
         try {
-            const summary = await onSyncClaude()
-            const base = (t.claudeSyncResult || "Claude Code: 新規 {added} 件 / 更新 {updated} 件")
+            const summary = await onSyncAgents()
+            const base = (t.agentSyncResult || "AI: 新規 {added} 件 / 更新 {updated} 件")
                 .replace("{added}", String(summary.added))
                 .replace("{updated}", String(summary.updated))
-            if (summary.unmatched > 0) {
-                const unmatchedMsg = (t.claudeSyncUnmatched || "（未登録リポジトリ {unmatched} 件）")
-                    .replace("{unmatched}", String(summary.unmatched))
-                toast.success(base + unmatchedMsg)
-            } else {
-                toast.success(base)
+
+            // 内訳は、取り込みが実際にあった記録元だけ出す。
+            // 片方しか使っていないユーザーに「Codex: 0 件」を毎回見せても意味がないため。
+            const breakdown: string[] = []
+            if (summary.claude.added > 0 || summary.claude.updated > 0) {
+                breakdown.push(`Claude Code ${summary.claude.added + summary.claude.updated}`)
             }
+            if (summary.codex.added > 0 || summary.codex.updated > 0) {
+                breakdown.push(`Codex ${summary.codex.added + summary.codex.updated}`)
+            }
+
+            let message = base
+            if (breakdown.length > 0) {
+                message += `（${breakdown.join(" / ")}）`
+            }
+            if (summary.unmatched > 0) {
+                message += (t.agentSyncUnmatched || "（未登録リポジトリ {unmatched} 件）")
+                    .replace("{unmatched}", String(summary.unmatched))
+            }
+            toast.success(message)
         } catch (err) {
-            console.error("[handleSyncClaude] sync error:", err)
-            toast.error(t.claudeSyncFailed || "Claude Code の同期に失敗しました")
+            console.error("[handleSyncAgents] sync error:", err)
+            toast.error(t.agentSyncFailed || "AI 作業時間の同期に失敗しました")
         } finally {
             setIsSyncing(false)
         }
@@ -89,16 +102,16 @@ export function ProjectList({ defaultHourlyRate, t, onSyncClaude }: ProjectListP
                     {t.projects}
                 </CardTitle>
                 <div className="flex items-center gap-2">
-                    {isElectron && onSyncClaude && (
+                    {isElectron && onSyncAgents && (
                         <Button
                             size="sm"
                             variant="outline"
-                            onClick={handleSyncClaude}
+                            onClick={handleSyncAgents}
                             disabled={isSyncing}
-                            title={t.claudeSyncHint || "Claude Code の作業時間を取り込みます"}
+                            title={t.agentSyncHint || "Claude Code と Codex の作業時間を取り込みます"}
                         >
                             <RefreshCw className={`w-4 h-4 mr-1 ${isSyncing ? "animate-spin" : ""}`} />
-                            {t.syncClaude || "Claude Code 同期"}
+                            {t.syncAgents || "AI 同期"}
                         </Button>
                     )}
                     <Button size="sm" onClick={handleAdd}>

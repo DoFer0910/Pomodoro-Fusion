@@ -12,7 +12,7 @@ import { SettingsView } from "./settings-view"
 import { TodoView } from "./todo-view"
 import { MoneyOverlay } from "./money-overlay"
 import { usePomodoro } from "@/hooks/use-pomodoro"
-import type { SyncSummary } from "@/lib/claude-sync"
+import type { AgentSyncSummary } from "@/lib/agent-sync"
 import { useTodo } from "@/hooks/use-todo"
 import { TimerProvider, useTimerContext } from "./timer-context"
 import { TimerMeta } from "./timer-meta"
@@ -32,7 +32,7 @@ export function PomodoroApp() {
     mounted,
     earnedAmount,
     showMoneyOverlay,
-    syncClaude
+    syncAgents
   } = usePomodoro()
 
   const { todos, addTodo, toggleTodo, deleteTodo, error } = useTodo()
@@ -109,7 +109,7 @@ export function PomodoroApp() {
         mounted={mounted}
         earnedAmount={earnedAmount}
         showMoneyOverlay={showMoneyOverlay}
-        syncClaude={syncClaude}
+        syncAgents={syncAgents}
         currentView={currentView}
         setCurrentView={setCurrentView}
         isAlwaysOnTop={isAlwaysOnTop}
@@ -143,7 +143,7 @@ function PomodoroAppContent({
   mounted,
   earnedAmount,
   showMoneyOverlay,
-  syncClaude,
+  syncAgents,
   currentView,
   setCurrentView,
   isAlwaysOnTop,
@@ -168,7 +168,7 @@ function PomodoroAppContent({
   mounted: boolean
   earnedAmount: number
   showMoneyOverlay: boolean
-  syncClaude: () => Promise<SyncSummary>
+  syncAgents: () => Promise<AgentSyncSummary>
   currentView: View
   setCurrentView: (v: View) => void
   isAlwaysOnTop: boolean
@@ -315,7 +315,7 @@ function PomodoroAppContent({
             onSettingsChange={updateSettings}
             t={t}
             isBillable={isBillable}
-            onSyncClaude={syncClaude}
+            onSyncAgents={syncAgents}
           />
         )}
       </main>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from "react"
-import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History, Bot, Flame } from "lucide-react"
+import { TrendingUp, Target, Clock, ChevronLeft, ChevronRight, Pencil, Check, X, Calendar as CalendarIcon, History, Bot, Terminal, Flame } from "lucide-react"
 import type { Session, Settings } from "@/lib/types"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -47,9 +47,10 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
   const [tempGoal, setTempGoal] = useState("")
   const { projects } = useProjects()
 
-  // タイマー（pomodoro）と Claude Code の作業時間が同じ時間帯で二重計上されないよう、
-  // isBillable で絞る前の全セッションに対して時間帯の重なりを相殺する。
-  // claude-code を真とし、重なる pomodoro 区間を duration から差し引く（lib/session-overlap.ts）。
+  // タイマー（pomodoro）と AI エージェント（Claude Code / Codex）の作業時間が
+  // 同じ時間帯で二重計上されないよう、isBillable で絞る前の全セッションに対して
+  // 時間帯の重なりを相殺する。AI 側を真とし、重なる pomodoro 区間を
+  // duration から差し引く（lib/session-overlap.ts）。
   const resolvedSessions = useMemo(() => resolveSessionOverlaps(sessions), [sessions])
 
   // Filter sessions based on current mode
@@ -189,31 +190,36 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
     }
   }, [filteredSessions, settings, selectedDate, projects])
 
-  // Claude Code セッションの当月集計（独立表示用）。
+  // AI エージェント（Claude Code / Codex）セッションの当月集計（独立表示用）。
   // メインの月次集計と同じく現在のモード（isBillable）で絞り込む。
-  // こうしないと、収益登録リポジトリの Claude Code 時間が没頭モードのカードにも
+  // こうしないと、収益登録リポジトリの AI 稼働時間が没頭モードのカードにも
   // 表示されてしまい、収益/没頭の区別が付かなくなる。
-  const claudeStats = useMemo(() => {
+  // Claude Code と Codex は別カードで出すため、記録元ごとに分けて集計する。
+  const agentStats = useMemo(() => {
     const year = selectedDate.getFullYear()
     const month = selectedDate.getMonth()
     const startOfMonth = new Date(year, month, 1).getTime()
     const endOfMonth = new Date(year, month + 1, 0, 23, 59, 59).getTime()
 
-    const claudeSessions = sessions.filter(
-      (s) =>
-        s.source === "claude-code" &&
-        s.isBillable === isBillable &&
-        s.timestamp >= startOfMonth &&
-        s.timestamp <= endOfMonth
-    )
+    const summarize = (source: Session["source"]) => {
+      const target = sessions.filter(
+        (s) =>
+          s.source === source &&
+          s.isBillable === isBillable &&
+          s.timestamp >= startOfMonth &&
+          s.timestamp <= endOfMonth
+      )
 
-    const totalDuration = claudeSessions.reduce((acc, s) => acc + s.duration, 0)
-    const totalEarnings = claudeSessions.reduce((acc, s) => acc + calculateSessionEarnings(s), 0)
+      return {
+        sessionCount: target.length,
+        totalDuration: target.reduce((acc, s) => acc + s.duration, 0),
+        totalEarnings: target.reduce((acc, s) => acc + calculateSessionEarnings(s), 0),
+      }
+    }
 
     return {
-      sessionCount: claudeSessions.length,
-      totalDuration,
-      totalEarnings,
+      claude: summarize("claude-code"),
+      codex: summarize("codex"),
     }
   }, [sessions, selectedDate, projects, settings, isBillable])
 
@@ -334,35 +340,27 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
           </CardContent>
         </Card>
 
-        {/* Claude Code Card - 独立表示（当月に Claude Code セッションがある場合のみ） */}
-        {claudeStats.sessionCount > 0 && (
-          <Card className="col-span-1 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 to-transparent pointer-events-none" />
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-                <Bot className="w-4 h-4 text-violet-500" />
-                {t.claudeCodeTime || "Claude Code"}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mt-2">
-                <span className="text-4xl font-bold tracking-tighter text-foreground">
-                  {formatDuration(claudeStats.totalDuration)}
-                </span>
-                <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-500 text-xs font-medium">
-                    {claudeStats.sessionCount} {t.sessions}
-                  </span>
-                  {isBillable && (
-                    <span className="text-xs">
-                      ¥{claudeStats.totalEarnings.toLocaleString()}
-                    </span>
-                  )}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* AI エージェントカード - 記録元ごとに独立表示（当月に実績がある場合のみ） */}
+        <AgentStatCard
+          label={t.claudeCodeTime || "Claude Code"}
+          icon={<Bot className="w-4 h-4 text-violet-500" />}
+          accentClass="from-violet-500/5"
+          badgeClass="bg-violet-500/10 text-violet-500"
+          stats={agentStats.claude}
+          isBillable={isBillable}
+          sessionsLabel={t.sessions}
+          formatDuration={formatDuration}
+        />
+        <AgentStatCard
+          label={t.codexTime || "Codex"}
+          icon={<Terminal className="w-4 h-4 text-emerald-500" />}
+          accentClass="from-emerald-500/5"
+          badgeClass="bg-emerald-500/10 text-emerald-500"
+          stats={agentStats.codex}
+          isBillable={isBillable}
+          sessionsLabel={t.sessions}
+          formatDuration={formatDuration}
+        />
 
         {/* Goal Card (Span 2) - Billable Only */}
         {isBillable ? (
@@ -702,3 +700,61 @@ export function StatsView({ sessions, settings, isBillable, t, onSettingsChange 
   )
 }
 
+
+/**
+ * AI エージェント（Claude Code / Codex）の当月稼働カード。
+ * 当月に実績が無いときは何も描画しない。記録元ごとに同じ見た目のカードが
+ * 増えるため、色とアイコンだけ差し替えられる形に切り出している。
+ */
+function AgentStatCard({
+  label,
+  icon,
+  accentClass,
+  badgeClass,
+  stats,
+  isBillable,
+  sessionsLabel,
+  formatDuration,
+}: {
+  label: string
+  icon: React.ReactNode
+  /** カード背景グラデーションの開始色（例: "from-violet-500/5"） */
+  accentClass: string
+  /** セッション数バッジの色（例: "bg-violet-500/10 text-violet-500"） */
+  badgeClass: string
+  stats: { sessionCount: number; totalDuration: number; totalEarnings: number }
+  isBillable: boolean
+  sessionsLabel: string
+  formatDuration: (seconds: number) => string
+}) {
+  if (stats.sessionCount === 0) return null
+
+  return (
+    <Card className="col-span-1 lg:col-span-2 bg-card/50 backdrop-blur-xl border-border/50 shadow-sm relative overflow-hidden">
+      <div className={cn("absolute inset-0 bg-gradient-to-br to-transparent pointer-events-none", accentClass)} />
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+          {icon}
+          {label}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="mt-2">
+          <span className="text-4xl font-bold tracking-tighter text-foreground">
+            {formatDuration(stats.totalDuration)}
+          </span>
+          <p className="text-sm text-muted-foreground mt-2 flex items-center gap-2">
+            <span className={cn("inline-flex items-center justify-center px-2 py-0.5 rounded-full text-xs font-medium", badgeClass)}>
+              {stats.sessionCount} {sessionsLabel}
+            </span>
+            {isBillable && (
+              <span className="text-xs">
+                ¥{stats.totalEarnings.toLocaleString()}
+              </span>
+            )}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}

@@ -15,17 +15,17 @@ import { activateLicense, deactivateLicense } from "@/lib/license"
 import { PURCHASE_URL, PURCHASE_ENABLED } from "@/lib/pro-limits"
 
 import { ProjectList } from "./project-list"
-import type { SyncSummary } from "@/lib/claude-sync"
+import type { AgentSyncSummary } from "@/lib/agent-sync"
 
 interface SettingsViewProps {
   settings: Settings
   onSettingsChange: (settings: Settings) => void
   t: Record<string, string>
   isBillable: boolean
-  onSyncClaude?: () => Promise<SyncSummary>
+  onSyncAgents?: () => Promise<AgentSyncSummary>
 }
 
-export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncClaude }: SettingsViewProps) {
+export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncAgents }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
   const { isPro, refresh: refreshLicense } = useLicense()
   const [licenseKeyInput, setLicenseKeyInput] = useState("")
@@ -136,7 +136,7 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
             </CardContent>
           </Card>
 
-          <ProjectList defaultHourlyRate={formData.defaultHourlyRate} t={t} onSyncClaude={onSyncClaude} />
+          <ProjectList defaultHourlyRate={formData.defaultHourlyRate} t={t} onSyncAgents={onSyncAgents} />
         </>
       )}
 

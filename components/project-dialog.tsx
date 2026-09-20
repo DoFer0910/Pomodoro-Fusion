@@ -195,7 +195,7 @@ export function ProjectDialog({ open, onOpenChange, project, onSave, defaultHour
                             </Button>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                            {t.repoPathHint || "Claude Code の作業時間をこのプロジェクトに紐づけます"}
+                            {t.repoPathHint || "Claude Code と Codex の作業時間をこのプロジェクトに紐づけます"}
                         </p>
                         <p className="text-xs text-muted-foreground">
                             {t.repoBillableHint || "リポジトリごとに、その時間を収益として計上するか没頭モードに換算するかを選べます"}

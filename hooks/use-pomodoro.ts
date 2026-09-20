@@ -9,10 +9,11 @@ import {
     getProjects
 } from "@/lib/storage"
 import {
-    scanClaudeSessions,
-    mergeClaudeSessions,
-    type SyncSummary,
-} from "@/lib/claude-sync"
+    scanAgentSessions,
+    mergeAgentSessions,
+    EMPTY_AGENT_SUMMARY,
+    type AgentSyncSummary,
+} from "@/lib/agent-sync"
 
 export function usePomodoro() {
     const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS)
@@ -148,19 +149,19 @@ export function usePomodoro() {
         []
     )
 
-    // Claude Code ログをスキャンし、登録 Project に紐づくセッションを冪等に取り込む。
-    // 取り込んだ結果を永続化して state に反映し、サマリ（追加/更新/未マッチ件数）を返す。
-    const syncClaude = useCallback(async (): Promise<SyncSummary> => {
+    // Claude Code と Codex のログをスキャンし、登録 Project に紐づくセッションを冪等に取り込む。
+    // 取り込んだ結果を永続化して state に反映し、サマリ（追加/更新/未マッチ件数と内訳）を返す。
+    const syncAgents = useCallback(async (): Promise<AgentSyncSummary> => {
         const projects = await getProjects()
         // スキャン（IPC）は時間がかかるため先に実行し、マージと保存は
         // mutateSessions 内で「保存直前の最新セッション」に対して行う。
         // こうすることで、スキャン中にタイマー完了の addSession が走っても、
         // その追加分を巻き戻さずにマージできる（lost update 防止）。
-        const results = await scanClaudeSessions()
+        const { claude, codex } = await scanAgentSessions()
 
-        let summary: SyncSummary = { added: 0, updated: 0, unmatched: 0 }
+        let summary: AgentSyncSummary = EMPTY_AGENT_SUMMARY
         const next = await mutateSessions((current) => {
-            const outcome = mergeClaudeSessions(results, projects, current)
+            const outcome = mergeAgentSessions(claude, codex, projects, current)
             summary = outcome.summary
             if (outcome.summary.added === 0 && outcome.summary.updated === 0) {
                 // 変化なしなら現状をそのまま返し、無意味な再保存を避ける
@@ -188,6 +189,6 @@ export function usePomodoro() {
         earnedAmount,
         showMoneyOverlay,
         updateSession,
-        syncClaude
+        syncAgents
     }
 }
