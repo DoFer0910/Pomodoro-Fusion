@@ -9,11 +9,11 @@ interface Interval {
 }
 
 /**
- * セッションが claude-code 由来かを判定する。
- * source 未指定は従来のポモドーロ計測（types.ts のコメント参照）なので claude-code ではない。
+ * セッションが AI エージェント（Claude Code / Codex）由来かを判定する。
+ * source 未指定は従来のポモドーロ計測（types.ts のコメント参照）なので該当しない。
  */
-function isClaudeSession(s: Session): boolean {
-  return s.source === "claude-code"
+function isAgentSession(s: Session): boolean {
+  return s.source === "claude-code" || s.source === "codex"
 }
 
 /**
@@ -28,8 +28,10 @@ function toInterval(s: Session): Interval {
 
 /**
  * 区間配列を開始時刻順にソートし、重なり・隣接をマージして
- * 重複のない区間配列にまとめる。claude-code 同士が重なっていても
+ * 重複のない区間配列にまとめる。AI セッション同士が重なっていても
  * 二重に数えないようにするための前処理。
+ * Claude Code と Codex を並行稼働させた場合もここで 1 本の区間に統合されるので、
+ * ポモドーロから差し引かれる秒数が実時間を超えることはない。
  */
 function mergeIntervals(intervals: Interval[]): Interval[] {
   if (intervals.length === 0) return []
@@ -51,7 +53,7 @@ function mergeIntervals(intervals: Interval[]): Interval[] {
 }
 
 /**
- * ある区間 [start, end) が、マージ済み claude 区間群と重なる合計ミリ秒を返す。
+ * ある区間 [start, end) が、マージ済み AI 区間群と重なる合計ミリ秒を返す。
  * merged は開始時刻昇順・非重複である前提。
  */
 function overlapMs(interval: Interval, merged: Interval[]): number {
@@ -66,36 +68,37 @@ function overlapMs(interval: Interval, merged: Interval[]): number {
 }
 
 /**
- * タイマー（pomodoro）と Claude Code の作業時間が同じ時間帯で二重計上されるのを防ぐため、
- * claude-code セッションを「真」として、重なる pomodoro セッションの duration を相殺する。
+ * タイマー（pomodoro）と AI エージェント（Claude Code / Codex）の作業時間が
+ * 同じ時間帯で二重計上されるのを防ぐため、AI セッションを「真」として、
+ * 重なる pomodoro セッションの duration を相殺する。
  *
  * 方針（ユーザー確定事項）:
- * - 時間帯が重なったら claude-code を優先（真とする）
+ * - 時間帯が重なったら AI セッションを優先（真とする）
  * - 重なる pomodoro 区間を duration から差し引く
  * - 区間は [timestamp, timestamp + duration] で近似する
  * - 元データは書き換えず、集計用に相殺後の Session 配列を返す純粋関数
  *
  * 挙動:
- * - claude-code セッションはそのまま通す
- * - pomodoro（source 未指定含む）は claude 区間との重なり秒数を duration から引く
+ * - AI セッション（claude-code / codex）はそのまま通す
+ * - pomodoro（source 未指定含む）は AI 区間との重なり秒数を duration から引く
  * - 相殺の結果 duration が 0 以下になった pomodoro は集計対象から除外する
  *
  * window や electron に依存しないため、そのままユニットテストできる。
  */
 export function resolveSessionOverlaps(sessions: Session[]): Session[] {
-  const claudeIntervals = sessions
-    .filter(isClaudeSession)
+  const agentIntervals = sessions
+    .filter(isAgentSession)
     .map(toInterval)
     .filter((iv) => iv.end > iv.start)
 
-  // claude セッションが無ければ相殺する対象も無いので、そのまま返す
-  if (claudeIntervals.length === 0) return sessions
+  // AI セッションが無ければ相殺する対象も無いので、そのまま返す
+  if (agentIntervals.length === 0) return sessions
 
-  const merged = mergeIntervals(claudeIntervals)
+  const merged = mergeIntervals(agentIntervals)
   const result: Session[] = []
 
   for (const s of sessions) {
-    if (isClaudeSession(s)) {
+    if (isAgentSession(s)) {
       result.push(s)
       continue
     }
@@ -109,7 +112,7 @@ export function resolveSessionOverlaps(sessions: Session[]): Session[] {
 
     const adjusted = s.duration - overlapSeconds
     if (adjusted <= 0) {
-      // claude 区間に完全に飲み込まれた pomodoro は二重計上分なので除外
+      // AI 区間に完全に飲み込まれた pomodoro は二重計上分なので除外
       continue
     }
     result.push({ ...s, duration: adjusted })
