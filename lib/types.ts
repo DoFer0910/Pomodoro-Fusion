@@ -40,9 +40,11 @@ export interface Session {
   todoTitle?: string
   projectId?: string
   /** セッションの記録元。未指定は従来のポモドーロ計測（pomodoro 相当）として扱う */
-  source?: "pomodoro" | "manual" | "claude-code"
+  source?: "pomodoro" | "manual" | "claude-code" | "codex"
   /** Claude Code セッションの jsonl ファイル名（= sessionId）。冪等同期のキー */
   claudeSessionId?: string
+  /** Codex セッションの rollout ファイル名（= sessionId）。冪等同期のキー */
+  codexSessionId?: string
 }
 
 export interface Settings {

@@ -93,10 +93,19 @@ export function getProjectRepoPaths(project: Project): string[] {
  * パスを持たない Project、repoPath が null のスキャン結果はマッチしない。
  */
 export function matchProjectId(
-  result: ClaudeScanResult,
+  result: RepoScanResult,
   projects: Project[],
 ): string | undefined {
   return matchProject(result, projects)?.projectId
+}
+
+/**
+ * リポジトリパスで Project へ照合できる、最小限のスキャン結果。
+ * Claude Code / Codex など記録元が違っても照合ロジックは共通なので、
+ * 具体的な ScanResult 型ではなくこの構造だけを要求する。
+ */
+export interface RepoScanResult {
+  repoPath: string | null
 }
 
 export interface ProjectMatch {
@@ -112,7 +121,7 @@ export interface ProjectMatch {
  * matchProjectId と異なり、収益/没頭の判定まで含めて返す。
  */
 export function matchProject(
-  result: ClaudeScanResult,
+  result: RepoScanResult,
   projects: Project[],
 ): ProjectMatch | undefined {
   if (!result.repoPath) return undefined
