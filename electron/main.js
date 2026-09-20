@@ -9,6 +9,9 @@ const handler = require('serve-handler');
 // lib/claude-sync.ts の CLAUDE_IDLE_GAP_SECONDS と必ず同じ値にすること。
 const CLAUDE_IDLE_GAP_SECONDS = 300; // 5分
 
+// Codex 側の離席判定。lib/codex-sync.ts の CODEX_IDLE_GAP_SECONDS と必ず同じ値にすること。
+const CODEX_IDLE_GAP_SECONDS = 300; // 5分
+
 // Dynamic import for electron-store (ESM)
 let store;
 (async () => {
@@ -224,6 +227,36 @@ function computeActiveSeconds(timestampsMs, idleGapSeconds) {
     return Math.round(activeMs / 1000);
 }
 
+// --- スキャン結果のキャッシュ ---
+// Claude Code と Codex のログは合わせて 1GB を超えることがあり、毎回全ファイルを
+// 読み直すと同期 1 回に十数秒かかる。ログファイルは追記されるだけで、
+// 完了済みセッションのファイルは二度と変わらないため、
+// mtime とサイズが前回と同じファイルは解析結果を使い回す。
+// アプリ起動ごとに作り直す揮発キャッシュ（初回だけ全読み）。
+const scanResultCache = new Map();
+
+// filePath の解析結果をキャッシュ経由で取得する。
+// mtime か size が変わっていれば parser を呼び直して更新する。
+function parseWithMtimeCache(filePath, parser) {
+    let stat;
+    try {
+        stat = fs.statSync(filePath);
+    } catch {
+        return null;
+    }
+
+    const cached = scanResultCache.get(filePath);
+    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+        return cached.result;
+    }
+
+    // 解析できなかった場合（null）もキャッシュする。
+    // 毎回読み直しても結果は同じなので、再読込を避けるため。
+    const result = parser(filePath);
+    scanResultCache.set(filePath, { mtimeMs: stat.mtimeMs, size: stat.size, result });
+    return result;
+}
+
 // 1 つの jsonl ファイルを解析し、{ claudeSessionId, repoPath, startTimestamp, durationSeconds } を返す。
 // 解析できない（timestamp が 2 件未満など）場合は null。
 function parseClaudeSessionFile(filePath) {
@@ -292,9 +325,125 @@ ipcMain.handle('claude:scan-sessions', async () => {
         }
         for (const file of files) {
             if (!file.endsWith('.jsonl')) continue;
-            const parsed = parseClaudeSessionFile(path.join(encodedDir, file));
+            const parsed = parseWithMtimeCache(path.join(encodedDir, file), parseClaudeSessionFile);
             if (parsed) results.push(parsed);
         }
+    }
+    return results;
+});
+
+// --- Codex セッションログのスキャン ---
+
+// ~/.codex/sessions 配下から rollout-*.jsonl を再帰的に集める。
+// 実際の階層は sessions/YYYY/MM/DD/ だが、将来階層が変わっても拾えるよう再帰で辿る。
+// 想定外の深い階層を無限に辿らないよう深さを制限する。
+function collectCodexSessionFiles(dir, out, depth = 0) {
+    if (depth > 5) return;
+    let entries;
+    try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+        return;
+    }
+    for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            collectCodexSessionFiles(full, out, depth + 1);
+        } else if (entry.name.endsWith('.jsonl')) {
+            out.push(full);
+        }
+    }
+}
+
+// 1 つの rollout jsonl を解析し、{ codexSessionId, repoPath, startTimestamp, durationSeconds } を返す。
+// 解析できない、またはサブエージェントのセッションの場合は null。
+function parseCodexSessionFile(filePath) {
+    let content;
+    try {
+        content = fs.readFileSync(filePath, 'utf8');
+    } catch {
+        return null;
+    }
+
+    const lines = content.split('\n');
+
+    // 1 行目は type: "session_meta" で、cwd などのメタ情報を持つ。
+    // ここだけは JSON.parse する。cwd の取得に加えて、
+    // サブエージェント判定（payload.source.subagent）に構造が必要なため。
+    let meta = null;
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+            meta = JSON.parse(trimmed);
+        } catch {
+            meta = null;
+        }
+        break;
+    }
+
+    let repoPath = null;
+    if (meta && meta.type === 'session_meta' && meta.payload) {
+        const source = meta.payload.source;
+        // 通常セッションの source は "vscode" などの文字列。
+        // guardian などサブエージェントは { subagent: { ... } } というオブジェクトになる。
+        // サブエージェントは親セッションと同じ時間帯に並行して走るため、
+        // 取り込むと同じ作業時間を二重・三重に計上してしまう。よって除外する。
+        if (source && typeof source === 'object' && source.subagent) {
+            return null;
+        }
+        if (typeof meta.payload.cwd === 'string') {
+            repoPath = meta.payload.cwd;
+        }
+    }
+
+    const timestamps = [];
+    for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        // フル JSON.parse は重く一部破損行で全体が落ちるため、timestamp のみ正規表現で抽出する。
+        const tsMatch = trimmed.match(/"timestamp":"([^"]+)"/);
+        if (tsMatch) {
+            const ms = Date.parse(tsMatch[1]);
+            if (!Number.isNaN(ms)) timestamps.push(ms);
+        }
+        if (!repoPath) {
+            // session_meta を JSON.parse できなかった場合のフォールバック。
+            const cwdMatch = trimmed.match(/"cwd":"((?:[^"\\]|\\.)*)"/);
+            if (cwdMatch) {
+                try {
+                    repoPath = JSON.parse(`"${cwdMatch[1]}"`);
+                } catch {
+                    repoPath = cwdMatch[1].replace(/\\\\/g, '\\');
+                }
+            }
+        }
+    }
+
+    if (timestamps.length < 2) return null;
+
+    return {
+        codexSessionId: path.basename(filePath, '.jsonl'),
+        repoPath,
+        startTimestamp: Math.min(...timestamps),
+        durationSeconds: computeActiveSeconds(timestamps, CODEX_IDLE_GAP_SECONDS),
+    };
+}
+
+ipcMain.handle('codex:scan-sessions', async () => {
+    const sessionsRoot = path.join(os.homedir(), '.codex', 'sessions');
+    if (!fs.existsSync(sessionsRoot)) {
+        // ~/.codex/sessions が無い（Codex 未使用）場合は空配列
+        return [];
+    }
+
+    const files = [];
+    collectCodexSessionFiles(sessionsRoot, files);
+
+    const results = [];
+    for (const file of files) {
+        const parsed = parseWithMtimeCache(file, parseCodexSessionFile);
+        if (parsed) results.push(parsed);
     }
     return results;
 });
