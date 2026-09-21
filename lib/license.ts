@@ -30,6 +30,13 @@ export interface LicenseStatus {
 const FREE_STATUS: LicenseStatus = { isPro: false, payload: null }
 
 /**
+ * このビルドがライセンス鍵を検証できるか。設定画面の鍵入力欄の表示判定に使う。
+ * public スタブは公開鍵を持たず、入力されても必ず失敗するため false（入力欄を出さない）。
+ * 実体（private）は同梱公開鍵が実鍵なら true になる。
+ */
+export const LICENSE_ACTIVATION_AVAILABLE = false
+
+/**
  * 鍵文字列を検証する（スタブ）。public では公開鍵を持たないため常に null を返す。
  * 実体（private）はここで Ed25519 署名をオフライン検証する。
  */

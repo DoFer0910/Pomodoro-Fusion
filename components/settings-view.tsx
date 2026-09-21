@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { exportData, importData, exportCSV, downloadFile } from "@/lib/data-management"
 import { toast } from "sonner"
 import { useLicense } from "@/hooks/use-license"
-import { activateLicense, deactivateLicense } from "@/lib/license"
+import { activateLicense, deactivateLicense, LICENSE_ACTIVATION_AVAILABLE } from "@/lib/license"
 import { PURCHASE_URL, PURCHASE_ENABLED } from "@/lib/pro-limits"
 
 import { ProjectList } from "./project-list"
@@ -326,36 +326,44 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
                 {t.deactivateLicense}
               </Button>
             </div>
-          ) : PURCHASE_ENABLED ? (
+          ) : PURCHASE_ENABLED || LICENSE_ACTIVATION_AVAILABLE ? (
+            // 購入ボタンは販売 URL が実 URL のとき、鍵入力欄はこのビルドが鍵を検証できる
+            // とき（Pro 実体入りビルド）に出す。販売開始前の Pro ビルドでも鍵を入力できる。
             <div className="flex flex-col gap-3">
-              <p className="text-xs text-muted-foreground">{t.licenseProDesc}</p>
-              <a href={PURCHASE_URL} target="_blank" rel="noopener noreferrer">
-                <Button className="w-full bg-amber-500 text-white hover:bg-amber-600">
-                  {t.purchasePro}
-                </Button>
-              </a>
-              <div className="flex flex-col gap-2">
-                <Label className="text-muted-foreground">{t.licenseKeyLabel}</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={licenseKeyInput}
-                    onChange={(e) => setLicenseKeyInput(e.target.value)}
-                    placeholder={t.licenseKeyPlaceholder}
-                    className="bg-input border-border"
-                  />
-                  <Button
-                    onClick={handleActivateLicense}
-                    disabled={!licenseKeyInput.trim() || activating}
-                    variant="outline"
-                    className="border-border text-foreground hover:bg-muted shrink-0"
-                  >
-                    {t.activateLicense}
+              <p className="text-xs text-muted-foreground">
+                {PURCHASE_ENABLED ? t.licenseProDesc : t.licenseComingSoon}
+              </p>
+              {PURCHASE_ENABLED && (
+                <a href={PURCHASE_URL} target="_blank" rel="noopener noreferrer">
+                  <Button className="w-full bg-amber-500 text-white hover:bg-amber-600">
+                    {t.purchasePro}
                   </Button>
+                </a>
+              )}
+              {LICENSE_ACTIVATION_AVAILABLE && (
+                <div className="flex flex-col gap-2">
+                  <Label className="text-muted-foreground">{t.licenseKeyLabel}</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={licenseKeyInput}
+                      onChange={(e) => setLicenseKeyInput(e.target.value)}
+                      placeholder={t.licenseKeyPlaceholder}
+                      className="bg-input border-border"
+                    />
+                    <Button
+                      onClick={handleActivateLicense}
+                      disabled={!licenseKeyInput.trim() || activating}
+                      variant="outline"
+                      className="border-border text-foreground hover:bg-muted shrink-0"
+                    >
+                      {t.activateLicense}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
-            // 販売 URL がプレースホルダの間は購入導線・鍵入力を出さず、近日販売の案内のみ。
+            // 販売 URL がプレースホルダで鍵も検証できない（public 版）ときは、近日販売の案内のみ。
             // 機能ロック（CSV・プロジェクト数）はこの分岐に関係なく常に効く。
             <p className="text-xs text-muted-foreground">{t.licenseComingSoon}</p>
           )}
