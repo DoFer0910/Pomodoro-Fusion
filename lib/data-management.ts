@@ -1,16 +1,19 @@
 import { type Session, type Settings, DEFAULT_SETTINGS, type Project, type Todo } from "./types"
 import { getSessions, getSettings, saveSessions, saveSettings, getProjects, saveProjects, getTodos, saveTodos } from "./storage"
+import { getAttendance, saveAttendance } from "./storage"
+import { emptyAttendance, validateAttendance, type AttendanceData } from "./attendance"
 
 export interface AppData {
     settings: Settings
     sessions: Session[]
     projects: Project[]
     todos: Todo[]
+    attendance?: AttendanceData
     version: number
     exportedAt: number
 }
 
-const CURRENT_VERSION = 2
+const CURRENT_VERSION = 3
 
 export async function exportData(): Promise<string> {
     const data: AppData = {
@@ -18,6 +21,7 @@ export async function exportData(): Promise<string> {
         sessions: await getSessions(),
         projects: await getProjects(),
         todos: await getTodos(),
+        attendance: await getAttendance(),
         version: CURRENT_VERSION,
         exportedAt: Date.now(),
     }
@@ -33,6 +37,10 @@ export async function importData(jsonString: string): Promise<{ success: boolean
             return { success: false, error: "Invalid data format" }
         }
 
+        // Reject invalid new data before writing any of the existing backup fields.
+        const attendance = "attendance" in data ? data.attendance : emptyAttendance()
+        validateAttendance(attendance)
+
         // Merge settings (keep existing keys if missing in imported data, though unlikely)
         const newSettings = { ...DEFAULT_SETTINGS, ...data.settings }
 
@@ -45,6 +53,7 @@ export async function importData(jsonString: string): Promise<{ success: boolean
         if (data.todos && Array.isArray(data.todos)) {
             await saveTodos(data.todos)
         }
+        await saveAttendance(attendance)
 
         return { success: true }
     } catch (e) {

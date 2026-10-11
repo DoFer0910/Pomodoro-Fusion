@@ -16,6 +16,9 @@ export interface ClaudeScanResult {
   startTimestamp: number
   /** ギャップ除外後の累積作業秒数 */
   durationSeconds: number
+  /** Actual log event ranges for attendance review; not human work time. */
+  lastTimestamp?: number
+  activityIntervals?: { start: number; end: number }[]
 }
 
 export interface SyncSummary {
