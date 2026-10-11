@@ -20,7 +20,9 @@ npm run build:electron     # next build + electron-builder → dist/Yield Setup 
 npm run lint               # ESLint
 ```
 
-テストスイートは存在しない。テストは `npm run dev:electron` で手動実施。
+`npm test` でVitest、`npm run test:e2e` でPlaywrightを実行する。PR作成前に `npm run ci`（型チェック・Vitest・本番ビルド・E2E）を実行する。Playwrightの初回準備は `npx playwright install chromium`。
+
+勤務記録はポモドーロ・AI由来のSessionとは独立し、`yield-attendance` を正本として `lib/storage.ts` を経由する。AIの実イベント区間は確認の参考資料であり、自動で勤務時間に算入しない。操作・保存・検証の詳細は [Docs/work-recording.md](Docs/work-recording.md) を参照する。
 
 ## アーキテクチャ
 
