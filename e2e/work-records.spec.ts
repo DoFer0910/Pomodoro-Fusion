@@ -67,6 +67,42 @@ test("ポモドーロの終了・休憩移行で勤務計測を止めない", as
   await expect(page.getByRole("heading", { name: "勤務記録", exact: true })).toBeVisible()
 })
 
+for (const clearProject of [false, true]) {
+  test(`プロジェクト削除後に再読み込みせず編集し、案件名を${clearProject ? "明示的に解除できる" : "保持する"}`, async ({ page }) => {
+    await initialize(page)
+    await page.getByLabel("勤務プロジェクト", { exact: true }).selectOption("p")
+    await page.getByRole("button", { name: "勤務開始", exact: true }).click()
+    await expect(page.getByRole("button", { name: "休憩に入る" })).toBeVisible()
+    await page.clock.fastForward(3600000)
+    await page.getByRole("button", { name: "勤務終了", exact: true }).click()
+    await expect(page.getByTestId("daily-work-time")).toHaveText("1:00:00")
+    await page.getByRole("button", { name: "設定", exact: true }).click()
+    const projectRow = page.locator("div.flex.items-center.justify-between").filter({ has: page.getByText(project.name, { exact: true }) }).last()
+    page.once("dialog", dialog => dialog.accept())
+    await projectRow.getByRole("button").last().click()
+    await expect(page.getByText(project.name, { exact: true })).toHaveCount(0)
+    await page.getByRole("button", { name: "勤務記録", exact: true }).click()
+    // Wait for the refreshed project list, leaving the long-lived attendance state mounted.
+    await expect(page.getByLabel("勤務プロジェクト", { exact: true }).locator('option[value="p"]')).toHaveCount(0)
+    await page.getByRole("button", { name: "区間を編集", exact: true }).click()
+    await page.getByLabel("開始日時", { exact: true }).fill("2026-10-12T09:15")
+    if (clearProject) await page.getByLabel("勤務プロジェクト", { exact: true }).last().selectOption("")
+    await page.getByRole("button", { name: "保存", exact: true }).click()
+    const expectedName = clearProject ? "未選択" : project.name
+    await expect(page.getByTestId("work-record")).toContainText(expectedName)
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem("yield-attendance")!).records[0].projectId)).toBeUndefined()
+    await page.reload()
+    await page.getByRole("button", { name: "勤務記録", exact: true }).click()
+    await expect(page.getByTestId("work-record")).toContainText(expectedName)
+    if (!clearProject) {
+      await page.getByRole("button", { name: "区間を編集", exact: true }).click()
+      await page.getByLabel("開始日時", { exact: true }).fill("2026-10-12T09:30")
+      await page.getByRole("button", { name: "保存", exact: true }).click()
+      await expect(page.getByTestId("work-record")).toContainText(project.name)
+    }
+  })
+}
+
 test("再起動で未終了区間を示し、終了時刻を修正して確定できる", async ({ page }) => {
   await initialize(page)
   await page.getByRole("button", { name: "勤務開始", exact: true }).click()

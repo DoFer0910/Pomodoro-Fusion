@@ -181,8 +181,10 @@ function RecordEditor({ record, controller: c, t, onClose }: { record: WorkRecor
         const parsedEnd = !end ? null : record.end !== null && end === inputTime(record.end) ? record.end : new Date(end).getTime()
         if (!start || !Number.isFinite(parsedStart) || (!end && record.end !== null) || (end && !Number.isFinite(parsedEnd))) { setLocalError(t.wrInvalidTime); return }
         const project = c.projects.find(p => p.id === projectId)
+        // An unresolved ID can remain in this mounted editor after project deletion.
+        // Keep the historical name unless the user explicitly changes the assignment.
         if (await c.saveRecord({ ...record, start: parsedStart, end: parsedEnd, kind,
-          projectId: project?.id, projectName: project?.name ?? (projectId === "" && !record.projectId ? record.projectName : undefined) })) onClose()
+          projectId: project?.id, projectName: project?.name ?? (projectId === (record.projectId ?? "") ? record.projectName : undefined) })) onClose()
       }}>
         <div className="space-y-1"><Label htmlFor="record-start">{t.wrStartTime}</Label><Input id="record-start" type="datetime-local" step="1" required value={start} onChange={e => setStart(e.target.value)} disabled={c.busy} /></div>
         <div className="space-y-1"><Label htmlFor="record-end">{t.wrEndTime}</Label><Input id="record-end" type="datetime-local" step="1" required={record.end !== null} value={end} onChange={e => setEnd(e.target.value)} disabled={c.busy} /></div>
