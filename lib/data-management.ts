@@ -37,6 +37,10 @@ export async function importData(jsonString: string): Promise<{ success: boolean
             return { success: false, error: "Invalid data format" }
         }
 
+        // Only known legacy formats may omit the ledger. Missing current data is corruption.
+        if (!("attendance" in data) && (!Number.isInteger(data.version) || data.version < 1 || data.version > 2)) {
+            return { success: false, error: "Missing attendance data" }
+        }
         // Reject invalid new data before writing any of the existing backup fields.
         const attendance = "attendance" in data ? data.attendance : emptyAttendance()
         validateAttendance(attendance)

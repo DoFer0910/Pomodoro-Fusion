@@ -141,10 +141,21 @@ describe("勤務記録の保存とバックアップ", () => {
     expect(await getAttendance()).toEqual(data)
   })
 
-  it("旧バックアップは空の勤務記録として復元する", async () => {
+  it.each([1, 2])("旧v%iバックアップは空の勤務記録として復元する", async (version) => {
     await saveAttendance(transitionWork(emptyAttendance(), "start", 1000))
-    expect(await importData(JSON.stringify({ settings: DEFAULT_SETTINGS, sessions: [], version: 2 }))).toEqual({ success: true })
+    expect(await importData(JSON.stringify({ settings: DEFAULT_SETTINGS, sessions: [], version }))).toEqual({ success: true })
     expect(await getAttendance()).toEqual(emptyAttendance())
+  })
+
+  it.each([3, 4, undefined])("勤務データが欠落したv%sバックアップは全保存データを変更せず拒否する", async (version) => {
+    await saveSettings({ ...DEFAULT_SETTINGS, defaultHourlyRate: 777 })
+    await saveSessions([makeSession("10")])
+    await saveProjects([{ id: "p", name: "案件A", hourlyRate: 1, color: "#000", createdAt: 1, updatedAt: 1 }])
+    await saveAttendance(transitionWork(emptyAttendance(), "start", 1000))
+    const before = new Map(store)
+    const result = await importData(JSON.stringify({ settings: DEFAULT_SETTINGS, sessions: [], projects: [], todos: [], version }))
+    expect(result.success).toBe(false)
+    expect(store).toEqual(before)
   })
 
   it("勤務データが壊れたバックアップでは既存設定も上書きしない", async () => {
