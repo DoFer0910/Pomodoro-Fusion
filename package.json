@@ -5,6 +5,7 @@
   "author": "Yield",
   "main": "electron/main.js",
   "private": true,
+  "yieldUpdateEdition": "free",
   "scripts": {
     "build": "next build",
     "dev": "next dev",
@@ -12,6 +13,8 @@
     "dev:electron": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:3000 && cross-env ELECTRON_IS_DEV=1 electron .\"",
     "dev:electron:free": "cross-env NEXT_PUBLIC_YIELD_DEV_PLAN=free npm run dev:electron",
     "build:electron": "next build && electron-builder",
+    "release:prepare": "node scripts/prepare-release.cjs",
+    "release:verify": "node scripts/verify-release.cjs",
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -23,6 +26,7 @@
   },
   "dependencies": {
     "electron-store": "^11.0.2",
+    "electron-updater": "^6.8.9",
     "serve-handler": "^6.1.6"
   },
   "devDependencies": {
@@ -56,6 +60,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@remotion/cli": "^4.0.422",
+    "@stoplight/prism-cli": "^5.16.0",
     "@tailwindcss/postcss": "^4.1.9",
     "@types/node": "^22",
     "@types/react": "^19",
@@ -72,6 +77,7 @@
     "electron-builder": "^26.7.0",
     "embla-carousel-react": "8.5.1",
     "input-otp": "1.4.1",
+    "js-yaml": "^4.1.0",
     "lucide-react": "^0.454.0",
     "next": "16.0.10",
     "next-themes": "^0.4.6",
@@ -95,6 +101,7 @@
     "zod": "3.25.76"
   },
   "build": {
+    "artifactName": "Yield-Setup-${version}.${ext}",
     "appId": "com.pomodoro.fusion",
     "productName": "Yield",
     "files": [

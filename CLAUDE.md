@@ -12,6 +12,12 @@
 
 ## コマンド
 
+開発・CI・配布ビルドはNode 24.18.0とnpm 11.16.0を使う。依存追加時はengine条件と両ワークフローのNode/npm版を確認し、同じ世代のnpmでlockを生成してnpm ciを検証する。PrismはNode 24.18.0以上が必要で、旧CIのNode 22/npm 10では導入に失敗するため。
+
+Windows配布版の自動更新とmasterからの配布手順は [Docs/app-updates.md](Docs/app-updates.md) を参照する。無料版・Pro版・本人用DevPro版を同じ更新先に混ぜない。
+
+自動更新の着手前には、インストール済みアプリの版（無料・Pro・本人用DevPro）も確認する。バージョン番号だけでは配布経路を特定できない。旧版に識別情報がない場合は同梱ライセンス実装を確認し、更新先と初回導入手順をIssueに反映する。
+
 ```bash
 npm run dev                # Web開発サーバー（http://localhost:3000）
 npm run dev:electron       # Electronアプリを開発モードで起動

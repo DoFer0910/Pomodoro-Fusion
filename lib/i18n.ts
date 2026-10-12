@@ -2,6 +2,15 @@ export type Language = "ja" | "en"
 
 export const translations = {
   ja: {
+    appUpdates: "アプリの更新", updateVersion: "現在のバージョン", updateNewVersion: "新しいバージョン",
+    updateCheck: "更新を確認", updateLoading: "更新状況を読み込み中…", updateError: "更新を確認できませんでした。接続を確認して、もう一度お試しください。",
+    updateTiming: "新版は自動でダウンロードし、アプリ終了時に適用します。タイマーの途中で自動再起動はしません。",
+    update_idle: "自動更新は有効です。", update_checking: "更新を確認中…", update_current: "最新のバージョンです。",
+    update_building: "本人用Proの新版を準備中です。完成後に自動で取得します。",
+    update_downloading: "新版をダウンロード中…", update_downloaded: "更新の準備ができました。アプリ終了時に適用します。",
+    update_error: "更新できませんでした。接続を確認して「更新を確認」で再試行してください。",
+    updateDisabled_development: "開発起動では自動更新しません。", updateDisabled_platform: "このOSでは自動更新に対応していません。",
+    updateDisabled_edition: "この版の更新先は未設定です。専用のインストーラで更新してください。",
     workRecords: "勤務記録",
     workSessionFinish: "集中セッションを終了",
     wrIntro: "自分が仕事をしていた時間を記録します。AI履歴は確認のための参考資料です。",
@@ -204,6 +213,15 @@ export const translations = {
     unknownProject: "未分類",
   },
   en: {
+    appUpdates: "App updates", updateVersion: "Current version", updateNewVersion: "New version",
+    updateCheck: "Check for updates", updateLoading: "Loading update status…", updateError: "Could not check for updates. Check your connection and try again.",
+    updateTiming: "Updates download automatically and install when you quit. The app will not restart during your timer.",
+    update_idle: "Automatic updates are enabled.", update_checking: "Checking for updates…", update_current: "You are up to date.",
+    update_building: "Preparing your personal Pro update. It will download automatically when ready.",
+    update_downloading: "Downloading update…", update_downloaded: "Update ready. It will install when you quit the app.",
+    update_error: "Update failed. Check your connection and select Check for updates to retry.",
+    updateDisabled_development: "Automatic updates are disabled in development.", updateDisabled_platform: "Automatic updates are not supported on this OS.",
+    updateDisabled_edition: "No update feed is configured for this edition. Use its dedicated installer to update.",
     workRecords: "Work records",
     workSessionFinish: "Finish focus session",
     wrIntro: "Record your own work time. AI logs are references for your review.",
