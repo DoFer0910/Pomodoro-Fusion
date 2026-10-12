@@ -27,7 +27,8 @@ interface SettingsViewProps {
 
 export function SettingsView({ settings, onSettingsChange, t, isBillable, onSyncAgents }: SettingsViewProps) {
   const [formData, setFormData] = useState<Settings>(settings)
-  const { isPro, refresh: refreshLicense } = useLicense()
+  const { isPro, status: licenseStatus, refresh: refreshLicense } = useLicense()
+  const isDevelopmentPro = isPro && licenseStatus.payload?.plan === "dev"
   const [licenseKeyInput, setLicenseKeyInput] = useState("")
   const [activating, setActivating] = useState(false)
 
@@ -316,15 +317,15 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
         <CardContent>
           {isPro ? (
             <div className="flex flex-col gap-2">
-              <p className="text-sm font-medium text-foreground">{t.licenseActive}</p>
-              <p className="text-xs text-muted-foreground mb-2">{t.licenseActiveDesc}</p>
-              <Button
+              <p className="text-sm font-medium text-foreground">{isDevelopmentPro ? t.licenseDevelopmentActive : t.licenseActive}</p>
+              <p className="text-xs text-muted-foreground mb-2">{isDevelopmentPro ? t.licenseDevelopmentDesc : t.licenseActiveDesc}</p>
+              {!isDevelopmentPro && <Button
                 onClick={handleDeactivateLicense}
                 variant="outline"
                 className="w-full justify-start border-border text-foreground hover:bg-muted"
               >
                 {t.deactivateLicense}
-              </Button>
+              </Button>}
             </div>
           ) : PURCHASE_ENABLED || LICENSE_ACTIVATION_AVAILABLE ? (
             // 購入ボタンは販売 URL が実 URL のとき、鍵入力欄はこのビルドが鍵を検証できる

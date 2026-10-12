@@ -15,12 +15,16 @@
 ```bash
 npm run dev                # Web開発サーバー（http://localhost:3000）
 npm run dev:electron       # Electronアプリを開発モードで起動
+npm run dev:free           # Web開発サーバーで無料版の制限を確認
+npm run dev:electron:free  # Electron開発起動で無料版の制限を確認
 npm run build              # Next.js本番ビルド（out/に出力）
 npm run build:electron     # next build + electron-builder → dist/Yield Setup <version>.exe
 npm run lint               # ESLint
 ```
 
 `npm test` でVitest、`npm run test:e2e` でPlaywrightを実行する。PR作成前に `npm run ci`（型チェック・Vitest・本番ビルド・E2E）を実行する。Playwrightの初回準備は `npx playwright install chromium`。
+
+通常の `dev` / `dev:electron` は開発専用のPro解放状態で起動する。無料版の制限は `dev:free` / `dev:electron:free` で確認する。ライセンス判定を変更したときは、開発・無料版確認・本番の3モードでプロジェクト追加とCSV出力を検証する。`npm run ci` は開発用設定を残した本番ビルドと、両方の開発起動のE2Eを通す。販売版への反映手順は [Docs/development-licensing.md](Docs/development-licensing.md) を参照する。
 
 勤務記録はポモドーロ・AI由来のSessionとは独立し、`yield-attendance` を正本として `lib/storage.ts` を経由する。AIの実イベント区間は確認の参考資料であり、自動で勤務時間に算入しない。操作・保存・検証の詳細は [Docs/work-recording.md](Docs/work-recording.md) を参照する。
 

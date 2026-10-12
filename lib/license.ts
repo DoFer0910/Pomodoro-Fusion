@@ -1,7 +1,7 @@
 // ライセンス（Pro）機構 — public スタブ。
 //
-// このファイルは public（無料版）リポジトリに置く「スタブ」実装で、常に無料
-// （isPro=false）を返す。Pro の実体（署名鍵のオフライン検証ロジック・同梱公開鍵）は
+// このファイルは public（無料版）リポジトリに置く「スタブ」実装。
+// 配布版は常に無料、開発起動だけは既定で Pro とする。Pro の実体（署名鍵のオフライン検証ロジック・同梱公開鍵）は
 // public には含めず、private リポジトリ yield-pro の pro/lib/license.ts に置く。
 //
 // 差し替え方式:
@@ -28,6 +28,16 @@ export interface LicenseStatus {
 }
 
 const FREE_STATUS: LicenseStatus = { isPro: false, payload: null }
+const DEV_STATUS: LicenseStatus = { isPro: true, payload: { v: 1, plan: "dev" } }
+
+// Next.js が NODE_ENV をビルド時に確定するため、本番では開発用設定が残っていても
+// この経路は無効。無料版の確認は dev:free / dev:electron:free で明示的に切り替える。
+// ストレージには書き込まないので、開発時の解放が配布版に引き継がれることもない。
+function developmentProEnabled(): boolean {
+  return process.env.NODE_ENV === "development"
+    && (process.env.NEXT_PUBLIC_YIELD_DEV_PLAN === undefined
+      || process.env.NEXT_PUBLIC_YIELD_DEV_PLAN === "pro")
+}
 
 /**
  * このビルドがライセンス鍵を検証できるか。設定画面の鍵入力欄の表示判定に使う。
@@ -47,24 +57,24 @@ export async function verifyLicenseKey(
 }
 
 /**
- * ライセンス鍵を有効化する（スタブ）。public では常に無料状態を返し、保存もしない。
+ * ライセンス鍵は検証・保存しない。開発用の解放状態は起動設定だけで決まる。
  */
 export async function activateLicense(_key: string): Promise<LicenseStatus> {
-  return FREE_STATUS
+  return getLicenseStatus()
 }
 
 /**
- * 現在のライセンス状態を返す（スタブ）。public では常に無料状態。
+ * 現在の状態を返す。通常開発では Pro、無料版確認・配布版では無料。
  */
 export async function getLicenseStatus(): Promise<LicenseStatus> {
-  return FREE_STATUS
+  return developmentProEnabled() ? DEV_STATUS : FREE_STATUS
 }
 
 /**
- * Pro かどうかを判定する（スタブ）。public では常に false。
+ * Pro かどうかを判定する。getLicenseStatus と同じ起動条件を使う。
  */
 export async function isPro(): Promise<boolean> {
-  return false
+  return (await getLicenseStatus()).isPro
 }
 
 /**

@@ -84,6 +84,7 @@ npm install
 
 ### 開発（Web版）
 ブラウザで動作確認します。ホットリロードが有効です。起動後 `http://localhost:3000` を開きます。
+通常の開発起動ではPro機能をすべて使えます。
 ```bash
 npm run dev
 ```
@@ -93,6 +94,15 @@ Electron アプリとして起動します。
 ```bash
 npm run dev:electron
 ```
+
+### 無料版の制限を確認
+開発サーバー・開発アプリを終了してから、次のいずれかで起動します。
+```bash
+npm run dev:free           # Web：無料版の制限を確認
+npm run dev:electron:free  # Electron：無料版の制限を確認
+```
+
+配布用ビルドでは開発用の解放は無効です。仕組みと販売版への反映手順は [開発中のPro機能と無料版の確認](Docs/development-licensing.md) を参照してください。
 
 ### テスト
 ```bash
