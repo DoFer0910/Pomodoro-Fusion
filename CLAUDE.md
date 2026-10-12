@@ -12,7 +12,7 @@
 
 ## コマンド
 
-開発・CI・配布ビルドはNode 24.18.0と同梱npmを使う。依存追加時はengine条件と両ワークフローのNode/npm版を確認し、同じ世代のnpmでlockを生成してnpm ciを検証する。PrismはNode 24.18.0以上が必要で、旧CIのNode 22/npm 10では導入に失敗するため。
+開発・CI・配布ビルドはNode 24.18.0とnpm 11.16.0を使う。依存追加時はengine条件と両ワークフローのNode/npm版を確認し、同じ世代のnpmでlockを生成してnpm ciを検証する。PrismはNode 24.18.0以上が必要で、旧CIのNode 22/npm 10では導入に失敗するため。
 
 Windows配布版の自動更新とmasterからの配布手順は [Docs/app-updates.md](Docs/app-updates.md) を参照する。無料版・Pro版・本人用DevPro版を同じ更新先に混ぜない。
 
