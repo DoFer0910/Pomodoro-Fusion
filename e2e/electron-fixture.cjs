@@ -15,7 +15,8 @@ app.whenReady().then(async () => {
     globalThis.testStore = store;
     const { createUpdateService } = require('../electron/updates.cjs');
     let updater = null;
-    if (process.env.YIELD_E2E_UPDATE_URL) {
+    let prepare;
+    if (process.env.YIELD_E2E_UPDATE_URL || process.env.YIELD_E2E_GITHUB_URL) {
         const { NsisUpdater } = require('electron-updater');
         updater = new NsisUpdater({ provider: 'generic', url: process.env.YIELD_E2E_UPDATE_URL });
         Object.defineProperty(updater.app, 'baseCachePath', { get: () => path.join(root, 'update-cache') });
@@ -24,6 +25,19 @@ app.whenReady().then(async () => {
         updater.updateConfigPath = configPath;
         fs.writeFileSync(configPath, `provider: generic\nurl: ${JSON.stringify(process.env.YIELD_E2E_UPDATE_URL)}\nupdaterCacheDirName: e2e-updates\n`);
         updater.disableDifferentialDownload = true;
+        if (process.env.YIELD_E2E_GITHUB_URL) {
+            const { createDevProPreparation, runGitHub } = require('../electron/dev-pro-updates.cjs');
+            const githubURL = process.env.YIELD_E2E_GITHUB_URL;
+            const originalSetFeedURL = updater.setFeedURL.bind(updater);
+            updater.setFeedURL = options => originalSetFeedURL({ ...options, host: new URL(githubURL).host, protocol: 'http' });
+            const run = args => {
+                if (args[0] !== 'api') return runGitHub(args);
+                const phase = fs.readFileSync(path.join(root, 'github-phase'), 'utf8');
+                fs.appendFileSync(path.join(root, 'github-requests'), JSON.stringify({ endpoint: args[1], post: args.includes('POST') }) + '\n');
+                return runGitHub(['api', `${githubURL}/${args[1]}`, ...args.slice(2), '-H', `Prefer: example=${phase}`]);
+            };
+            prepare = createDevProPreparation({ repository: 'personal/yield', publicRepository: 'public/yield', installedVersion: app.getVersion(), updater, run });
+        }
     }
     ipcMain.handle('storage:get', (_event, key) => store.get(key));
     ipcMain.handle('storage:set', (_event, key, value) => {
@@ -37,7 +51,7 @@ app.whenReady().then(async () => {
     const window = new BrowserWindow({ width: 960, height: 900, show: false,
         webPreferences: { preload: path.join(__dirname, '..', 'electron', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
     globalThis.testUpdates = createUpdateService({ app, ipcMain, updater, getWindow: () => window,
-        enabled: Boolean(updater), disabledReason: 'development' });
+        enabled: Boolean(updater), disabledReason: 'development', prepare });
     // テストでは取得・SHA検証を実行するが、ホストPCへインストーラを適用しない。
     if (updater) updater.autoInstallOnAppQuit = false;
     window.webContents.session.setDownloadPath(path.join(root, 'downloads'));

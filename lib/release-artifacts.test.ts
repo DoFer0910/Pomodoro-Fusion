@@ -7,6 +7,16 @@ import path from "node:path"
 const require = createRequire(import.meta.url)
 const { verifyRelease } = require("../scripts/verify-release.cjs")
 describe("自動更新の配布ファイル", () => {
+  it("本人用インストーラはDevProの名前で検証し、無料配布物として扱わない", () => {
+    const root = mkdtempSync(path.join(tmpdir(), "yield-personal-artifact-"))
+    const payload = Buffer.from("personal installer"), name = "Yield-DevPro-Setup-1.2.1.exe"
+    const checksum = createHash("sha512").update(payload).digest("base64")
+    writeFileSync(path.join(root, name), payload)
+    writeFileSync(path.join(root, name + ".blockmap"), "blockmap")
+    writeFileSync(path.join(root, "latest.yml"), JSON.stringify({ version: "1.2.1", files: [{ url: name, sha512: checksum, size: payload.length }], path: name, sha512: checksum }))
+    expect(verifyRelease(root, "1.2.1", "dev-pro").installer).toBe(name)
+    expect(() => verifyRelease(root, "1.2.1", "free")).toThrow()
+  })
   it("実際のファイル名・サイズ・SHAが一致する配布物だけを公開する", () => {
     const root = mkdtempSync(path.join(tmpdir(), "yield-artifact-"))
     const payload = Buffer.from("installer")

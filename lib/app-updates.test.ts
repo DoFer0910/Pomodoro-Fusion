@@ -5,18 +5,29 @@ const require = createRequire(import.meta.url)
 const { createUpdateService, updatePolicy } = require("../electron/updates.cjs")
 
 afterEach(() => vi.useRealTimers())
-function setup(checkForUpdates = vi.fn(async () => ({})), enabled = true) {
+function setup(checkForUpdates = vi.fn(async () => ({})), enabled = true, prepare?: () => Promise<unknown>) {
   const app = Object.assign(new EventEmitter(), { getVersion: () => "1.2.0" })
   const updater = Object.assign(new EventEmitter(), { checkForUpdates })
   const handlers = new Map<string, () => unknown>()
   const send = vi.fn()
-  const service = createUpdateService({ app, updater, enabled,
+  const service = createUpdateService({ app, updater, enabled, prepare,
     ipcMain: { handle: (key: string, callback: () => unknown) => handlers.set(key, callback), removeHandler: (key: string) => handlers.delete(key) },
     getWindow: () => ({ isDestroyed: () => false, webContents: { send } }), logger: { error: vi.fn() },
   })
   return { service, updater, app, handlers, send }
 }
 describe("アプリの自動更新", () => {
+  it("本人用のビルド待ちは5分ごとに確認し、完成前にインストーラ取得を始めない", async () => {
+    vi.useFakeTimers()
+    const prepare = vi.fn(async () => ({ skip: true, status: "building", updateVersion: "1.2.1" }))
+    const active = setup(vi.fn(), true, prepare)
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(active.service.getStatus().status).toBe("building")
+    await vi.advanceTimersByTimeAsync(5 * 60 * 1000)
+    expect(prepare).toHaveBeenCalledTimes(2)
+    expect(active.updater.checkForUpdates).not.toHaveBeenCalled()
+    active.service.dispose()
+  })
   it("起動後と定期確認で更新を取得し、開発起動では通信しない", async () => {
     vi.useFakeTimers()
     const active = setup()
@@ -68,5 +79,8 @@ describe("アプリの自動更新", () => {
       expect(updatePolicy({ ...base, ...change }).enabled).toBe(false)
     }
     expect(updatePolicy({ ...base, edition: "pro", repository: "DoFer0910/yield-pro-releases" }).enabled).toBe(true)
+    expect(updatePolicy({ ...base, edition: "dev-pro", repository: "DoFer0910/yield-pro", privateFeed: true }).enabled).toBe(true)
+    expect(updatePolicy({ ...base, edition: "dev-pro", repository: "DoFer0910/yield-pro", privateFeed: false }).enabled).toBe(false)
+    expect(updatePolicy({ ...base, edition: "pro", repository: "dofer0910/pomodoro-fusion" }).enabled).toBe(false)
   })
 })
