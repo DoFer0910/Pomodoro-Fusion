@@ -167,15 +167,27 @@ app.whenReady().then(() => {
         development: process.env.ELECTRON_IS_DEV === '1',
         edition: metadata.yieldUpdateEdition,
         repository: metadata.yieldUpdateRepository,
+        privateFeed: metadata.yieldUpdatePrivate,
     });
-    const updateLogger = { ...console, error: (message, error) => {
-        console.error(message, error ?? '');
+    const redactUpdateLog = value => String(value?.stack ?? value ?? '')
+        .replace(/\b(?:gh[pousr]_[A-Za-z0-9_]+|github_pat_[A-Za-z0-9_]+)\b/g, '[REDACTED]');
+    const updateLogger = Object.fromEntries(['info', 'warn', 'debug', 'error'].map(level =>
+        [level, (...values) => console[level](...values.map(redactUpdateLog))]));
+    updateLogger.error = (message, error) => {
+        const detail = `${redactUpdateLog(message)} ${redactUpdateLog(error)}`;
+        console.error(detail);
         fs.appendFile(path.join(app.getPath('userData'), 'updates.log'),
-            `${new Date().toISOString()} ${message} ${error?.stack ?? error ?? ''}\n`,
+            `${new Date().toISOString()} ${detail}\n`,
             writeError => { if (writeError) console.warn('Cannot write update log', writeError); });
-    } };
-    createUpdateService({ app, ipcMain, getWindow: () => mainWindow, ...policy, logger: updateLogger,
-        updater: policy.enabled ? require('electron-updater').autoUpdater : null });
+    };
+    const updater = policy.enabled ? require('electron-updater').autoUpdater : null;
+    const prepare = policy.enabled && metadata.yieldUpdateEdition === 'dev-pro'
+        ? require('./dev-pro-updates.cjs').createDevProPreparation({
+            repository: metadata.yieldUpdateRepository,
+            publicRepository: 'DoFer0910/Pomodoro-Fusion',
+            installedVersion: app.getVersion(), updater,
+        }) : undefined;
+    createUpdateService({ app, ipcMain, getWindow: () => mainWindow, ...policy, logger: updateLogger, updater, prepare });
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

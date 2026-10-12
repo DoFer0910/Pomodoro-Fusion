@@ -1,7 +1,7 @@
 export interface UpdateStatus {
   revision: number
   version: string
-  status: "idle" | "disabled" | "checking" | "current" | "downloading" | "downloaded" | "error"
+  status: "idle" | "disabled" | "checking" | "building" | "current" | "downloading" | "downloaded" | "error"
   reason: "development" | "platform" | "edition" | null
   updateVersion: string | null
   percent: number | null
