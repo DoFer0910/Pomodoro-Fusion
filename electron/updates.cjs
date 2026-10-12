@@ -81,9 +81,12 @@ function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabl
         startupTimer.unref?.();
         interval.unref?.();
     }
-    function dispose() {
+    function stopAutomaticChecks() {
         clearTimeout(startupTimer);
         clearInterval(interval);
+    }
+    function dispose() {
+        stopAutomaticChecks();
         // quit時にインストーラ起動が失敗してもerrorイベントを未処理にしない。
         for (const [event, listener] of listeners) if (event !== 'error') updater.removeListener(event, listener);
         ipcMain.removeHandler('updates:get-status');
@@ -91,7 +94,7 @@ function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabl
         ipcMain.removeHandler('updates:restart');
     }
     app.once('will-quit', dispose);
-    return { check, getStatus: () => ({ ...state }), dispose };
+    return { check, getStatus: () => ({ ...state }), stopAutomaticChecks, dispose };
 }
 
 // Proは専用の公開配布先が指定されている場合だけ有効。DevProは公開更新しない。

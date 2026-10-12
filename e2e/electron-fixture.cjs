@@ -68,6 +68,9 @@ app.whenReady().then(async () => {
         webPreferences: { preload: path.join(__dirname, '..', 'electron', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
     globalThis.testUpdates = createUpdateService({ app, ipcMain, updater, getWindow: () => window,
         enabled: Boolean(updater), disabledReason: 'development', prepare, canRestart: () => !timerRunning });
+    // 手動操作の各段階を検証中に30秒の起動確認が割り込まないようにする。
+    // 本番の起動・定期確認は既定で有効なまま、時間制御した単体テストで保証する。
+    globalThis.testUpdates.stopAutomaticChecks();
     // テストでは取得・SHA検証を実行するが、ホストPCへインストーラを適用しない。
     if (updater) updater.autoInstallOnAppQuit = false;
     window.webContents.session.setDownloadPath(path.join(root, 'downloads'));

@@ -15,7 +15,9 @@ async function launch(outputDir: string): Promise<{ app: ElectronApplication; pa
   }))
   const app = await electron.launch({ args: [path.resolve("e2e/electron-fixture.cjs")], env: { ...process.env, YIELD_E2E_DIR: root, TZ: "Asia/Tokyo" } })
   const page = await app.firstWindow()
-  await expect(page.getByRole("button", { name: "勤務開始", exact: true })).toBeVisible()
+  await page.waitForURL('http://127.0.0.1:3107/')
+  await page.waitForLoadState('networkidle')
+  await expect(page.getByRole("button", { name: "勤務開始", exact: true })).toBeVisible({ timeout: 30_000 })
   await page.getByRole("button", { name: "勤務記録", exact: true }).click()
   await expect(page.getByRole("button", { name: "AI履歴を再確認" })).toBeEnabled()
   return { app, page, root }
