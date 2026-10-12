@@ -17,6 +17,25 @@ function setup(checkForUpdates = vi.fn(async () => ({})), enabled = true, prepar
   return { service, updater, app, handlers, send }
 }
 describe("アプリの自動更新", () => {
+  it("手動再試行の検証は自動確認を停止し、30秒経過しても失敗画面が勝手に切り替わらない", async () => {
+    vi.useFakeTimers()
+    const active = setup(vi.fn(async () => {
+      active.updater.emit("update-downloaded", { version: "1.2.1" })
+      return {}
+    }))
+    // E2Eが手動操作を検証する間だけスケジュールを止める。停止なしでは30秒後に競合する。
+    active.service.stopAutomaticChecks()
+    active.updater.emit("update-downloaded", { version: "1.2.1" })
+    active.updater.quitAndInstall.mockImplementationOnce(() => { throw new Error("install failed") })
+    active.handlers.get("updates:restart")!()
+    expect(active.service.getStatus().status).toBe("error")
+    await vi.advanceTimersByTimeAsync(30_000)
+    expect(active.service.getStatus().status).toBe("error")
+    expect(active.updater.checkForUpdates).not.toHaveBeenCalled()
+    await active.service.check()
+    expect(active.service.getStatus().status).toBe("downloaded")
+    active.service.dispose()
+  })
   it("取得完了・タイマー停止後だけサイレント適用と自動起動を要求し、多重操作を防ぐ", () => {
     let running = true
     const active = setup(undefined, true, undefined, () => !running)
