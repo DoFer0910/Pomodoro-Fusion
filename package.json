@@ -8,13 +8,16 @@
   "scripts": {
     "build": "next build",
     "dev": "next dev",
+    "dev:free": "cross-env NEXT_PUBLIC_YIELD_DEV_PLAN=free next dev",
     "dev:electron": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on http://localhost:3000 && cross-env ELECTRON_IS_DEV=1 electron .\"",
+    "dev:electron:free": "cross-env NEXT_PUBLIC_YIELD_DEV_PLAN=free npm run dev:electron",
     "build:electron": "next build && electron-builder",
     "lint": "eslint .",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
-    "ci": "npm run typecheck && npm test && npm run build && npm run test:e2e",
+    "test:e2e:license": "cross-env YIELD_E2E_PLAN=pro playwright test --config playwright.license.config.ts && cross-env YIELD_E2E_PLAN=free playwright test --config playwright.license.config.ts",
+    "ci": "npm run typecheck && npm test && cross-env NEXT_PUBLIC_YIELD_DEV_PLAN=pro npm run build && npm run test:e2e && npm run test:e2e:license",
     "start": "next start",
     "postinstall": "electron-builder install-app-deps"
   },

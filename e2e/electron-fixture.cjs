@@ -24,6 +24,7 @@ app.whenReady().then(async () => {
     for (const channel of ['progress:update', 'idle:configure', 'notification:show', 'window:set-bounds', 'window:set-always-on-top', 'window:set-compact-mode']) ipcMain.handle(channel, () => {});
     const window = new BrowserWindow({ width: 960, height: 900, show: false,
         webPreferences: { preload: path.join(__dirname, '..', 'electron', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
-    await window.loadURL('http://127.0.0.1:3107');
+    window.webContents.session.setDownloadPath(path.join(root, 'downloads'));
+    await window.loadURL(process.env.YIELD_E2E_URL || 'http://127.0.0.1:3107');
 });
 app.on('window-all-closed', () => app.quit());
