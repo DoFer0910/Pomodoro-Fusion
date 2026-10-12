@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('electron', {
     getUpdateStatus: () => ipcRenderer.invoke('updates:get-status'),
     checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+    restartForUpdate: () => ipcRenderer.invoke('updates:restart'),
     onUpdateStatus: (callback) => {
         const listener = (_event, status) => callback(status);
         ipcRenderer.on('updates:status', listener);

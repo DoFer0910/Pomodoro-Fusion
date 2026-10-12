@@ -1,5 +1,5 @@
 // 更新はメインプロセスで管理する。レンダラーから更新先やインストーラを指定させない。
-function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabledReason = 'development', logger = console, prepare }) {
+function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabledReason = 'development', logger = console, prepare, canRestart = () => true }) {
     let state = { revision: 0, version: app.getVersion(), status: enabled ? 'idle' : 'disabled', reason: enabled ? null : disabledReason, updateVersion: null, percent: null };
     let checking = null;
     let startupTimer;
@@ -17,7 +17,7 @@ function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabl
     };
     async function check(manual = false) {
         // ダウンロード済み更新を再確認で消さず、並行ダウンロードも防ぐ。
-        if (!enabled || checking || ['checking', 'downloading', 'downloaded'].includes(state.status)) return { ...state };
+        if (!enabled || checking || ['checking', 'downloading', 'downloaded', 'restarting'].includes(state.status)) return { ...state };
         publish({ status: 'checking', updateVersion: null, percent: null });
         checking = Promise.resolve().then(async () => {
             try {
@@ -41,6 +41,19 @@ function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabl
     }
     ipcMain.handle('updates:get-status', () => ({ ...state }));
     ipcMain.handle('updates:check', () => check(true));
+    ipcMain.handle('updates:restart', () => {
+        // 検証済みの取得完了後だけ適用する。多重クリックと計測中の終了を防ぐ。
+        if (!enabled || state.status !== 'downloaded' || !canRestart()) return { ...state };
+        publish({ status: 'restarting' });
+        try {
+            // サイレント適用し、インストール完了後にアプリを必ず開き直す。
+            updater.quitAndInstall(true, true);
+        } catch (error) {
+            logger.error('[updates] Update restart failed', error);
+            publish({ status: 'error', percent: null });
+        }
+        return { ...state };
+    });
     if (enabled) {
         updater.autoDownload = true;
         updater.autoInstallOnAppQuit = true;
@@ -75,6 +88,7 @@ function createUpdateService({ app, ipcMain, getWindow, updater, enabled, disabl
         for (const [event, listener] of listeners) if (event !== 'error') updater.removeListener(event, listener);
         ipcMain.removeHandler('updates:get-status');
         ipcMain.removeHandler('updates:check');
+        ipcMain.removeHandler('updates:restart');
     }
     app.once('will-quit', dispose);
     return { check, getStatus: () => ({ ...state }), dispose };

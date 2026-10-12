@@ -4,6 +4,10 @@ export const translations = {
   ja: {
     appUpdates: "アプリの更新", updateVersion: "現在のバージョン", updateNewVersion: "新しいバージョン",
     updateCheck: "更新を確認", updateLoading: "更新状況を読み込み中…", updateError: "更新を確認できませんでした。接続を確認して、もう一度お試しください。",
+    updateRestart: "再起動して更新", update_restarting: "更新を適用して再起動しています…",
+    updateRestartTimerRunning: "タイマー動作中は再起動できません。計測の区切りで更新してください。",
+    updateRestartTimerReset: "再起動後にアプリが自動で開きます。一時停止中のタイマーはリセットされます。",
+    updateRestartError: "再起動を開始できませんでした。もう一度「再起動して更新」を押してください。",
     updateTiming: "新版は自動でダウンロードし、アプリ終了時に適用します。タイマーの途中で自動再起動はしません。",
     update_idle: "自動更新は有効です。", update_checking: "更新を確認中…", update_current: "最新のバージョンです。",
     update_building: "本人用Proの新版を準備中です。完成後に自動で取得します。",
@@ -215,6 +219,10 @@ export const translations = {
   en: {
     appUpdates: "App updates", updateVersion: "Current version", updateNewVersion: "New version",
     updateCheck: "Check for updates", updateLoading: "Loading update status…", updateError: "Could not check for updates. Check your connection and try again.",
+    updateRestart: "Restart to update", update_restarting: "Installing the update and restarting…",
+    updateRestartTimerRunning: "Restart is unavailable while the timer is running. Update when your session is finished.",
+    updateRestartTimerReset: "The app will reopen automatically. Any paused timer will reset.",
+    updateRestartError: "Could not start the restart. Select Restart to update to try again.",
     updateTiming: "Updates download automatically and install when you quit. The app will not restart during your timer.",
     update_idle: "Automatic updates are enabled.", update_checking: "Checking for updates…", update_current: "You are up to date.",
     update_building: "Preparing your personal Pro update. It will download automatically when ready.",

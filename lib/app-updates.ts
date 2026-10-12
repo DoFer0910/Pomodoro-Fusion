@@ -1,7 +1,7 @@
 export interface UpdateStatus {
   revision: number
   version: string
-  status: "idle" | "disabled" | "checking" | "building" | "current" | "downloading" | "downloaded" | "error"
+  status: "idle" | "disabled" | "checking" | "building" | "current" | "downloading" | "downloaded" | "restarting" | "error"
   reason: "development" | "platform" | "edition" | null
   updateVersion: string | null
   percent: number | null
@@ -10,6 +10,7 @@ export interface UpdateStatus {
 export interface UpdateAPI {
   getUpdateStatus(): Promise<UpdateStatus>
   checkForUpdates(): Promise<UpdateStatus>
+  restartForUpdate?: () => Promise<UpdateStatus>
   onUpdateStatus(callback: (status: UpdateStatus) => void): () => void
 }
 
