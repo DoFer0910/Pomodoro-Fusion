@@ -160,6 +160,23 @@ app.whenReady().then(() => {
     registerGlobalShortcuts();
     startIdleMonitor();
 
+    const { createUpdateService, updatePolicy } = require('./updates.cjs');
+    const metadata = require('../package.json');
+    const policy = updatePolicy({
+        packaged: app.isPackaged, platform: process.platform,
+        development: process.env.ELECTRON_IS_DEV === '1',
+        edition: metadata.yieldUpdateEdition,
+        repository: metadata.yieldUpdateRepository,
+    });
+    const updateLogger = { ...console, error: (message, error) => {
+        console.error(message, error ?? '');
+        fs.appendFile(path.join(app.getPath('userData'), 'updates.log'),
+            `${new Date().toISOString()} ${message} ${error?.stack ?? error ?? ''}\n`,
+            writeError => { if (writeError) console.warn('Cannot write update log', writeError); });
+    } };
+    createUpdateService({ app, ipcMain, getWindow: () => mainWindow, ...policy, logger: updateLogger,
+        updater: policy.enabled ? require('electron-updater').autoUpdater : null });
+
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });

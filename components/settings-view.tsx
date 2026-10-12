@@ -15,6 +15,7 @@ import { activateLicense, deactivateLicense, LICENSE_ACTIVATION_AVAILABLE } from
 import { PURCHASE_URL, PURCHASE_ENABLED } from "@/lib/pro-limits"
 
 import { ProjectList } from "./project-list"
+import { AppUpdates } from "./app-updates"
 import type { AgentSyncSummary } from "@/lib/agent-sync"
 
 interface SettingsViewProps {
@@ -111,6 +112,8 @@ export function SettingsView({ settings, onSettingsChange, t, isBillable, onSync
   return (
     <div className="py-6 space-y-6">
       <h2 className="text-xl font-semibold text-foreground">{t.settings}</h2>
+
+      <AppUpdates t={t} />
 
       {isBillable && (
         <>

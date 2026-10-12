@@ -1,35 +1,90 @@
 name: Release
 
-# v0.3.21 のような "v" 始まりのタグを push すると発火し、
-# Windows 上で配布用 exe をビルドして GitHub Release に公開する。
+# PRのCIは公開しない。masterへpushされたコミットのCI成功を公開条件にする。
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [master]
+
+concurrency:
+  group: yield-stable-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   build-and-release:
-    # Windows 向け electron-builder のビルドは Windows ランナーでのみ可能。
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'master' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     runs-on: windows-latest
+    timeout-minutes: 25
     permissions:
-      # electron-builder が Release を作成・アセットをアップロードするために必要。
       contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
     steps:
-      - name: Checkout
+      - name: Checkout tested commit
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+
+      - name: Skip superseded or already published commits
+        id: eligible
+        shell: pwsh
+        run: |
+          $head = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read master' }
+          $published = @(gh api --paginate "repos/$env:GITHUB_REPOSITORY/releases" --jq '.[] | select(.draft == false and .prerelease == false) | .target_commitish')
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read releases' }
+          $ready = ($head -eq $env:RELEASE_SHA) -and ($published -notcontains $env:RELEASE_SHA)
+          "ready=$($ready.ToString().ToLower())" >> $env:GITHUB_OUTPUT
 
       - name: Setup Node.js
+        if: steps.eligible.outputs.ready == 'true'
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
+        if: steps.eligible.outputs.ready == 'true'
         run: npm ci
 
-      - name: Build and publish
-        # --publish always で electron-builder が Release 作成からアセット
-        # アップロードまで実行する。GITHUB_TOKEN は Actions が自動発行する。
-        run: npm run build:electron -- --publish always
+      - name: Prepare unique release version
+        if: steps.eligible.outputs.ready == 'true'
+        id: version
+        run: npm run release:prepare
+
+      - name: Build installer and update metadata
+        if: steps.eligible.outputs.ready == 'true'
+        run: npm run build:electron -- --publish never
+
+      - name: Publish complete release
+        if: steps.eligible.outputs.ready == 'true'
+        shell: pwsh
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          npm run release:verify
+          if ($LASTEXITCODE -ne 0) { throw 'Invalid release artifacts' }
+          # 必要なファイルが揃うまで下書きにする。公開途中の版をアプリが取得しないため。
+          $installer = @(Get-ChildItem dist -Filter '*.exe')
+          $blockmap = @(Get-ChildItem dist -Filter '*.exe.blockmap')
+          if ($installer.Count -ne 1 -or $blockmap.Count -ne 1 -or !(Test-Path dist/latest.yml)) { throw 'Incomplete release artifacts' }
+          gh release create $env:RELEASE_TAG --target $env:RELEASE_SHA --title $env:RELEASE_TAG --draft --generate-notes
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot create draft release' }
+          gh release upload $env:RELEASE_TAG $installer[0].FullName $blockmap[0].FullName dist/latest.yml
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot upload release assets' }
+          # ビルド中に次の変更が入った場合は旧コミットを最新版として公開しない。
+          $head = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/heads/master" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot read master' }
+          if ($head -ne $env:RELEASE_SHA) { Write-Output 'Superseded release remains a draft'; exit 0 }
+          gh release edit $env:RELEASE_TAG --draft=false --latest
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot publish release' }

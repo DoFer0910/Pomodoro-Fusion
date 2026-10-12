@@ -1,6 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electron', {
+    getUpdateStatus: () => ipcRenderer.invoke('updates:get-status'),
+    checkForUpdates: () => ipcRenderer.invoke('updates:check'),
+    onUpdateStatus: (callback) => {
+        const listener = (_event, status) => callback(status);
+        ipcRenderer.on('updates:status', listener);
+        return () => ipcRenderer.removeListener('updates:status', listener);
+    },
     read: (key) => ipcRenderer.invoke('storage:get', key),
     write: (key, value) => ipcRenderer.invoke('storage:set', key, value),
     remove: (key) => ipcRenderer.invoke('storage:delete', key),
