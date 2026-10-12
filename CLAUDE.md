@@ -14,6 +14,8 @@
 
 Windows配布版の自動更新とmasterからの配布手順は [Docs/app-updates.md](Docs/app-updates.md) を参照する。無料版・Pro版・本人用DevPro版を同じ更新先に混ぜない。
 
+自動更新の着手前には、インストール済みアプリの版（無料・Pro・本人用DevPro）も確認する。バージョン番号だけでは配布経路を特定できない。旧版に識別情報がない場合は同梱ライセンス実装を確認し、更新先と初回導入手順をIssueに反映する。
+
 ```bash
 npm run dev                # Web開発サーバー（http://localhost:3000）
 npm run dev:electron       # Electronアプリを開発モードで起動
