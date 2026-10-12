@@ -10,16 +10,17 @@ interface MoneyOverlayProps {
 export function MoneyOverlay({ amount, show = true }: MoneyOverlayProps) {
   const [particles, setParticles] = useState<{ id: number; x: number; delay: number }[]>([])
 
-  if (!show) return null
-
   useEffect(() => {
+    if (!show) return
     const newParticles = Array.from({ length: 8 }, (_, i) => ({
       id: i,
       x: Math.random() * 100,
       delay: Math.random() * 0.5,
     }))
     setParticles(newParticles)
-  }, [])
+  }, [show])
+
+  if (!show) return null
 
   return (
     <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center">

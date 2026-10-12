@@ -1,10 +1,34 @@
 import { type Session, type Settings, DEFAULT_SETTINGS, type Project, type Todo } from "./types"
 import { getStorage } from "./storage/adapter"
+import { emptyAttendance, validateAttendance, type AttendanceData } from "./attendance"
 
 const SESSIONS_KEY = "pomodoro-sessions"
 const SETTINGS_KEY = "pomodoro-settings"
 const PROJECTS_KEY = "pomodoro-projects"
 const TODOS_KEY = "pomodoro-todos"
+const ATTENDANCE_KEY = "yield-attendance"
+let attendanceWriteChain: Promise<unknown> = Promise.resolve()
+
+export async function getAttendance(): Promise<AttendanceData> {
+  const data = await getStorage().get<AttendanceData>(ATTENDANCE_KEY) ?? emptyAttendance()
+  validateAttendance(data)
+  return data
+}
+
+export async function mutateAttendance(mutator: (current: AttendanceData) => AttendanceData | Promise<AttendanceData>): Promise<AttendanceData> {
+  const run = attendanceWriteChain.then(async () => {
+    const next = await mutator(await getAttendance())
+    validateAttendance(next)
+    await getStorage().set(ATTENDANCE_KEY, next)
+    return next
+  })
+  attendanceWriteChain = run.catch(() => {})
+  return run
+}
+
+export async function saveAttendance(data: AttendanceData): Promise<void> {
+  await mutateAttendance(() => data)
+}
 
 export async function getSessions(): Promise<Session[]> {
   const storage = getStorage()
@@ -98,6 +122,9 @@ export async function updateProject(project: Project): Promise<void> {
 }
 
 export async function deleteProject(id: string): Promise<void> {
+  // Keep the recorded name as a historical snapshot after deleting the project.
+  await mutateAttendance(data => ({ ...data, records: data.records.map(record =>
+    record.projectId === id ? { ...record, projectId: undefined } : record) }))
   // 1. Anonymize sessions (unlink from project)
   // セッションの読み書きは他操作と直列化する（lost update 防止）。
   await mutateSessions((sessions) =>

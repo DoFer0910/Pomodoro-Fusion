@@ -12,6 +12,9 @@
     "build:electron": "next build && electron-builder",
     "lint": "eslint .",
     "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test",
+    "ci": "npm run typecheck && npm test && npm run build && npm run test:e2e",
     "start": "next start",
     "postinstall": "electron-builder install-app-deps"
   },
@@ -21,6 +24,7 @@
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@playwright/test": "^1.64.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",

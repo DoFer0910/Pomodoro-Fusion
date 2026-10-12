@@ -268,6 +268,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           variant="outline"
           size="icon"
           onClick={handleReset}
+          aria-label={t.reset}
           className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all duration-300"
         >
           <RotateCcw className="w-6 h-6 text-muted-foreground" />
@@ -277,6 +278,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           <Button
             size="lg"
             onClick={finishSession}
+            aria-label={t.workSessionFinish}
             className={cn(
               "w-24 h-24 rounded-full shadow-lg shadow-amber-500/20",
               "bg-amber-500 hover:bg-amber-600 text-white animate-pulse"
@@ -288,6 +290,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           <Button
             size="lg"
             onClick={isRunning ? handlePause : handleStart}
+            aria-label={isRunning ? t.pause : t.start}
             className={cn(
               "w-24 h-24 rounded-full shadow-xl transition-all duration-300 transform hover:scale-105 active:scale-95",
               "bg-primary text-primary-foreground hover:bg-primary/90",
@@ -303,6 +306,7 @@ export function TimerView({ settings, isBillable, onSessionComplete, sessions, t
           variant="outline"
           size="icon"
           onClick={handleSkip}
+          aria-label={t.skip}
           className="w-14 h-14 rounded-full bg-background/50 backdrop-blur-sm border-border/50 hover:bg-background/80 transition-all duration-300"
         >
           <SkipForward className="w-6 h-6 text-muted-foreground" />

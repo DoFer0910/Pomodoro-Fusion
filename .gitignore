@@ -33,6 +33,8 @@ out/
 .agent/
 AGENTS.md
 .claude/
+/test-results/
+/playwright-report/
 
 # 収益化（public には含めず private/yield-pro 側で管理する）
 # 公開戦略ガイド §4・§8: 収益計画書は public リポに入れない

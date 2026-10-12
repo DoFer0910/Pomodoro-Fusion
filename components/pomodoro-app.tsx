@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff, Minimize2 } from "lucide-react"
+import { Timer, BarChart3, History, SettingsIcon, CheckSquare, Pin, PinOff, Minimize2, Clock3 } from "lucide-react"
 import { cn } from "@/lib/utils"
 // import { type Settings, DEFAULT_SETTINGS, type Session } from "@/lib/types" // handled by hook
 import { useTranslation } from "@/lib/i18n"
@@ -16,8 +16,11 @@ import type { AgentSyncSummary } from "@/lib/agent-sync"
 import { useTodo } from "@/hooks/use-todo"
 import { TimerProvider, useTimerContext } from "./timer-context"
 import { TimerMeta } from "./timer-meta"
+import { AttendanceView, AttendancePrompt } from "./attendance-view"
+import { useAttendance, type AttendanceController } from "@/hooks/use-attendance"
+import { Button } from "./ui/button"
 
-type View = "timer" | "stats" | "history" | "settings" | "todo"
+type View = "timer" | "stats" | "history" | "settings" | "todo" | "work"
 
 export function PomodoroApp() {
   const {
@@ -34,6 +37,7 @@ export function PomodoroApp() {
     showMoneyOverlay,
     syncAgents
   } = usePomodoro()
+  const attendance = useAttendance(settings.language)
 
   const { todos, addTodo, toggleTodo, deleteTodo, error } = useTodo()
 
@@ -93,6 +97,7 @@ export function PomodoroApp() {
   return (
     <TimerProvider settings={settings} sessions={sessions} todos={todos} onSessionComplete={addSession}>
       <PomodoroAppContent
+        attendance={attendance}
         settings={settings}
         sessions={sessions}
         isBillable={isBillable}
@@ -127,6 +132,7 @@ import { ResizeBorders } from "./resize-borders"
 
 // Extract content to separate component to keep main clear and because we might want to access context here later
 function PomodoroAppContent({
+  attendance,
   settings,
   sessions,
   isBillable,
@@ -152,6 +158,7 @@ function PomodoroAppContent({
   toggleCompactMode,
   t
 }: {
+  attendance: AttendanceController
   settings: any
   sessions: any[]
   isBillable: boolean
@@ -182,10 +189,16 @@ function PomodoroAppContent({
     { id: "todo" as const, icon: CheckSquare, label: t.todo },
     { id: "stats" as const, icon: BarChart3, label: t.stats },
     { id: "history" as const, icon: History, label: t.history },
+    { id: "work" as const, icon: Clock3, label: t.workRecords },
     { id: "settings" as const, icon: SettingsIcon, label: t.settings },
   ]
 
-  const { isRunning, timeLeft, isBreak } = useTimerContext()
+  const { isRunning, timeLeft, isBreak, selectedProjectId } = useTimerContext()
+  const openWork = attendance.data.records.find(record => record.end === null)
+  const showWork = async () => {
+    if (isCompactMode) await toggleCompactMode()
+    setCurrentView("work")
+  }
 
   // Disable mode switching if:
   // 1. Timer is running
@@ -217,7 +230,8 @@ function PomodoroAppContent({
 
       {/* Header (Standard Mode Only) */}
       {!isCompactMode && (
-        <header className="sticky top-8 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
+        <header className={cn("sticky z-40 border-b border-border bg-background/80 backdrop-blur-sm",
+          mounted && typeof window !== "undefined" && (window as any).electron ? "top-8" : "top-0")}>
           <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
             <h1 className="text-lg font-black text-foreground">{t.appName}</h1>
 
@@ -275,6 +289,20 @@ function PomodoroAppContent({
         !isCompactMode && "max-w-2xl mx-auto px-4 pb-24 w-full",
         isCompactMode && "flex items-center justify-center overflow-hidden" // Removed padding and added overflow handling
       )}>
+        <AttendancePrompt controller={attendance} t={t} compact={isCompactMode} onReview={showWork} />
+        {isCompactMode && attendance.ready && <button onClick={showWork} className="fixed bottom-1 left-2 right-2 z-50 rounded-lg border bg-background/90 px-2 py-1 text-xs app-region-no-drag">{openWork ? openWork.kind === "work" ? t.wrWorking : t.wrOnBreak : t.wrStopped} · {t.workRecords}</button>}
+        {!isCompactMode && currentView !== "work" && attendance.ready && (
+          <div className="my-3 rounded-lg border p-2 flex flex-wrap items-center gap-2 text-xs">
+            <button onClick={showWork} className="mr-auto underline underline-offset-2">{openWork ? openWork.kind === "work" ? t.wrWorking : t.wrOnBreak : t.wrStopped}</button>
+            {!openWork && <Button size="sm" variant="outline" disabled={attendance.busy} onClick={() => attendance.transition("start", selectedProjectId)}>{t.wrStart}</Button>}
+            {openWork?.kind === "work" && <Button size="sm" variant="outline" disabled={attendance.busy} onClick={() => attendance.transition("break")}>{t.wrBreak}</Button>}
+            {openWork?.kind === "break" && <Button size="sm" variant="outline" disabled={attendance.busy} onClick={() => attendance.transition("resume")}>{t.wrResume}</Button>}
+            {openWork && <Button size="sm" variant="outline" disabled={attendance.busy} onClick={() => attendance.transition("finish")}>{t.wrFinish}</Button>}
+            {attendance.error && <p role="alert" className="w-full text-destructive">{t[attendance.error] || t.wrSaveFailed}</p>}
+            {openWork?.id === attendance.restoredId && <p className="w-full text-amber-600">{t.wrRestored}</p>}
+          </div>
+        )}
+        {!isCompactMode && currentView === "work" && <AttendanceView controller={attendance} t={t} />}
         {currentView === "timer" && (
           <TimerView
             settings={settings}
@@ -330,7 +358,7 @@ function PomodoroAppContent({
                   key={item.id}
                   onClick={() => setCurrentView(item.id)}
                   className={cn(
-                    "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all duration-300",
+                    "flex flex-col items-center gap-1 px-1 sm:px-3 py-2 rounded-lg transition-all duration-300 min-w-0",
                     currentView === item.id
                       ? "text-primary scale-110 opacity-100"
                       : "text-muted-foreground hover:text-foreground opacity-70 scale-100",

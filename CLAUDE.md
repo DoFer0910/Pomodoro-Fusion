@@ -20,7 +20,11 @@ npm run build:electron     # next build + electron-builder → dist/Yield Setup 
 npm run lint               # ESLint
 ```
 
-テストスイートは存在しない。テストは `npm run dev:electron` で手動実施。
+`npm test` でVitest、`npm run test:e2e` でPlaywrightを実行する。PR作成前に `npm run ci`（型チェック・Vitest・本番ビルド・E2E）を実行する。Playwrightの初回準備は `npx playwright install chromium`。
+
+勤務記録はポモドーロ・AI由来のSessionとは独立し、`yield-attendance` を正本として `lib/storage.ts` を経由する。AIの実イベント区間は確認の参考資料であり、自動で勤務時間に算入しない。操作・保存・検証の詳細は [Docs/work-recording.md](Docs/work-recording.md) を参照する。
+
+勤務データの省略を許可するバックアップは旧v1・v2だけとし、現行形式の欠落を空データで補わない。欠落時に全保存データが変わらないことを復元テストで保証する。プロジェクト削除後の編集は、再読み込みせず画面を戻るE2Eで案件名の保持と明示的な参照解除を確認する。保存層のテストだけでは、画面に残った古い参照から案件名を失う経路を検知できないため。
 
 ## アーキテクチャ
 
