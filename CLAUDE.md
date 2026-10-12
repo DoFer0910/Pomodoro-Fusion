@@ -12,6 +12,8 @@
 
 ## コマンド
 
+Windows配布版の自動更新とmasterからの配布手順は [Docs/app-updates.md](Docs/app-updates.md) を参照する。無料版・Pro版・本人用DevPro版を同じ更新先に混ぜない。
+
 ```bash
 npm run dev                # Web開発サーバー（http://localhost:3000）
 npm run dev:electron       # Electronアプリを開発モードで起動
