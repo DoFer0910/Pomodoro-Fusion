@@ -12,6 +12,11 @@ app.whenReady().then(async () => {
     const store = new Store({ cwd: path.join(root, 'storage') });
     const initial = JSON.parse(fs.readFileSync(path.join(root, 'initial.json'), 'utf8'));
     for (const [key, value] of Object.entries(initial)) if (!store.has(key)) store.set(key, value);
+    if (process.env.YIELD_E2E_RESTART === '1' && fs.existsSync(path.join(root, 'install-request.json'))) {
+        fs.writeFileSync(path.join(root, 'restarted.json'), JSON.stringify({ data: store.store, pid: process.pid }));
+        app.quit();
+        return;
+    }
     globalThis.testStore = store;
     const { createUpdateService } = require('../electron/updates.cjs');
     let updater = null;
@@ -25,6 +30,15 @@ app.whenReady().then(async () => {
         updater.updateConfigPath = configPath;
         fs.writeFileSync(configPath, `provider: generic\nurl: ${JSON.stringify(process.env.YIELD_E2E_UPDATE_URL)}\nupdaterCacheDirName: e2e-updates\n`);
         updater.disableDifferentialDownload = true;
+        if (process.env.YIELD_E2E_RESTART === '1') {
+            // 実quitAndInstallとElectronの再起動を通すが、検証用exeは実行しない。
+            updater.doInstall = options => {
+                if (fs.existsSync(path.join(root, 'fail-install'))) throw new Error('Test installer start failure');
+                fs.writeFileSync(path.join(root, 'install-request.json'), JSON.stringify(options));
+                app.relaunch({ args: [root] });
+                return true;
+            };
+        }
         if (process.env.YIELD_E2E_GITHUB_URL) {
             const { createDevProPreparation, runGitHub } = require('../electron/dev-pro-updates.cjs');
             const githubURL = process.env.YIELD_E2E_GITHUB_URL;
@@ -47,11 +61,13 @@ app.whenReady().then(async () => {
     ipcMain.handle('storage:delete', (_event, key) => store.delete(key));
     ipcMain.handle('claude:scan-sessions', () => scanAgentDirectoryAsync(path.join(root, 'claude'), 'claude-code'));
     ipcMain.handle('codex:scan-sessions', () => scanAgentDirectoryAsync(path.join(root, 'codex'), 'codex'));
-    for (const channel of ['progress:update', 'idle:configure', 'notification:show', 'window:set-bounds', 'window:set-always-on-top', 'window:set-compact-mode']) ipcMain.handle(channel, () => {});
+    let timerRunning = false;
+    ipcMain.handle('progress:update', (_event, payload) => { timerRunning = Boolean(payload?.isRunning); });
+    for (const channel of ['idle:configure', 'notification:show', 'window:set-bounds', 'window:set-always-on-top', 'window:set-compact-mode']) ipcMain.handle(channel, () => {});
     const window = new BrowserWindow({ width: 960, height: 900, show: false,
         webPreferences: { preload: path.join(__dirname, '..', 'electron', 'preload.js'), contextIsolation: true, nodeIntegration: false } });
     globalThis.testUpdates = createUpdateService({ app, ipcMain, updater, getWindow: () => window,
-        enabled: Boolean(updater), disabledReason: 'development', prepare });
+        enabled: Boolean(updater), disabledReason: 'development', prepare, canRestart: () => !timerRunning });
     // テストでは取得・SHA検証を実行するが、ホストPCへインストーラを適用しない。
     if (updater) updater.autoInstallOnAppQuit = false;
     window.webContents.session.setDownloadPath(path.join(root, 'downloads'));

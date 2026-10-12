@@ -5,18 +5,53 @@ const require = createRequire(import.meta.url)
 const { createUpdateService, updatePolicy } = require("../electron/updates.cjs")
 
 afterEach(() => vi.useRealTimers())
-function setup(checkForUpdates = vi.fn(async () => ({})), enabled = true, prepare?: () => Promise<unknown>) {
+function setup(checkForUpdates = vi.fn(async () => ({})), enabled = true, prepare?: () => Promise<unknown>, canRestart = () => true) {
   const app = Object.assign(new EventEmitter(), { getVersion: () => "1.2.0" })
-  const updater = Object.assign(new EventEmitter(), { checkForUpdates })
+  const updater = Object.assign(new EventEmitter(), { checkForUpdates, quitAndInstall: vi.fn() })
   const handlers = new Map<string, () => unknown>()
   const send = vi.fn()
-  const service = createUpdateService({ app, updater, enabled, prepare,
+  const service = createUpdateService({ app, updater, enabled, prepare, canRestart,
     ipcMain: { handle: (key: string, callback: () => unknown) => handlers.set(key, callback), removeHandler: (key: string) => handlers.delete(key) },
     getWindow: () => ({ isDestroyed: () => false, webContents: { send } }), logger: { error: vi.fn() },
   })
   return { service, updater, app, handlers, send }
 }
 describe("アプリの自動更新", () => {
+  it("取得完了・タイマー停止後だけサイレント適用と自動起動を要求し、多重操作を防ぐ", () => {
+    let running = true
+    const active = setup(undefined, true, undefined, () => !running)
+    const restart = active.handlers.get("updates:restart")!
+    restart()
+    active.updater.emit("update-available", { version: "1.2.1" })
+    restart()
+    expect(active.updater.quitAndInstall).not.toHaveBeenCalled()
+    active.updater.emit("update-downloaded", { version: "1.2.1" })
+    restart()
+    expect(active.updater.quitAndInstall).not.toHaveBeenCalled()
+    running = false
+    restart(); restart()
+    expect(active.updater.quitAndInstall).toHaveBeenCalledExactlyOnceWith(true, true)
+    expect(active.service.getStatus().status).toBe("restarting")
+    active.service.dispose()
+    expect(active.handlers.has("updates:restart")).toBe(false)
+    const disabled = setup(undefined, false)
+    disabled.handlers.get("updates:restart")!()
+    expect(disabled.updater.quitAndInstall).not.toHaveBeenCalled()
+    disabled.service.dispose()
+  })
+  it("適用開始失敗を表示し、再確認で取得完了になれば再起動を再試行できる", async () => {
+    const active = setup()
+    active.updater.emit("update-downloaded", { version: "1.2.1" })
+    active.updater.quitAndInstall.mockImplementationOnce(() => { throw new Error("install failed") })
+    active.handlers.get("updates:restart")!()
+    expect(active.service.getStatus().status).toBe("error")
+    await active.service.check()
+    active.updater.emit("update-downloaded", { version: "1.2.1" })
+    active.handlers.get("updates:restart")!()
+    expect(active.updater.quitAndInstall).toHaveBeenCalledTimes(2)
+    expect(active.service.getStatus().status).toBe("restarting")
+    active.service.dispose()
+  })
   it("本人用のビルド待ちは5分ごとに確認し、完成前にインストーラ取得を始めない", async () => {
     vi.useFakeTimers()
     const prepare = vi.fn(async () => ({ skip: true, status: "building", updateVersion: "1.2.1" }))

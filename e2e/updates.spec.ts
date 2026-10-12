@@ -1,7 +1,7 @@
 import { test, expect, _electron as electron } from "@playwright/test"
 import { createServer } from "node:http"
 import { createHash } from "node:crypto"
-import { mkdirSync, mkdtempSync, writeFileSync, readFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, unlinkSync } from "node:fs"
 import path from "node:path"
 const version: string = JSON.parse(readFileSync(path.resolve("package.json"), "utf8")).version
 const versionParts = version.split(".").map(Number)
@@ -30,7 +30,7 @@ test("Electron開発起動ではバージョンを表示して更新を無効に
   } finally { await app.close() }
 })
 
-test("実際の更新ライブラリで失敗後に再試行し、SHA検証した新版を取得してタイマーと保存データを保持する", async ({}, info) => {
+test("実際の更新ライブラリで取得・適用開始の失敗を再試行し、タイマーを守ってボタンから再起動する", async ({}, info) => {
   test.setTimeout(60_000)
   mkdirSync(info.outputDir, { recursive: true })
   const root = mkdtempSync(path.join(info.outputDir, "electron-"))
@@ -57,7 +57,7 @@ test("実際の更新ライブラリで失敗後に再試行し、SHA検証し�
   let app: Awaited<ReturnType<typeof electron.launch>> | undefined
   let updateLogs = ""
   try {
-    app = await electron.launch({ args: [root], env: { ...process.env, YIELD_E2E_DIR: root, YIELD_E2E_UPDATE_URL: `http://127.0.0.1:${port}` } })
+    app = await electron.launch({ args: [root], env: { ...process.env, YIELD_E2E_DIR: root, YIELD_E2E_RESTART: '1', YIELD_E2E_UPDATE_URL: `http://127.0.0.1:${port}` } })
     app.process().stdout?.on("data", chunk => { updateLogs += chunk.toString() })
     app.process().stderr?.on("data", chunk => { updateLogs += chunk.toString() })
     const page = await app.firstWindow()
@@ -65,6 +65,8 @@ test("実際の更新ライブラリで失敗後に再試行し、SHA検証し�
     await page.getByRole("button", { name: "スタート", exact: true }).click()
     await page.getByRole("button", { name: "設定", exact: true }).click()
     const check = page.getByRole("button", { name: "更新を確認", exact: true })
+    const restart = page.getByRole("button", { name: "再起動して更新", exact: true })
+    await expect(restart).toHaveCount(0)
     await check.click()
     await expect(page.getByText("更新できませんでした。接続を確認して「更新を確認」で再試行してください。", { exact: true })).toBeVisible()
     mode = "corrupt"
@@ -76,6 +78,11 @@ test("実際の更新ライブラリで失敗後に再試行し、SHA検証し�
     await check.click()
     await expect(page.getByText("更新の準備ができました。アプリ終了時に適用します。", { exact: true })).toBeVisible()
     await expect(check).toBeDisabled()
+    await expect(restart).toBeDisabled()
+    await expect(page.getByText("タイマー動作中は再起動できません。計測の区切りで更新してください。", { exact: true })).toBeVisible()
+    // UIだけでなく、計測中のIPC要求もメイン側で拒否する。
+    expect((await page.evaluate(() => (window as any).electron.restartForUpdate())).status).toBe('downloaded')
+    expect(existsSync(path.join(root, 'install-request.json'))).toBe(false)
     expect(downloads).toBe(2)
     const cachedPath = await app.evaluate(() => (globalThis as any).testUpdates.getStatus())
     expect(cachedPath.updateVersion).toBe(updateVersion)
@@ -86,6 +93,26 @@ test("実際の更新ライブラリで失敗後に再試行し、SHA検証し�
     await page.locator('[data-slot="card"]').filter({ hasText: "アプリの更新" }).screenshot({ path: info.outputPath("update-ready.png") })
     await page.getByRole("button", { name: "タイマー", exact: true }).click()
     await expect(page.getByRole("button", { name: "一時停止", exact: true })).toBeVisible()
+    await page.getByRole("button", { name: "一時停止", exact: true }).click()
+    await page.getByRole("button", { name: "設定", exact: true }).click()
+    await expect(restart).toBeEnabled()
+    await expect(page.getByText("再起動後にアプリが自動で開きます。一時停止中のタイマーはリセットされます。", { exact: true })).toBeVisible()
+    await page.locator('[data-slot="card"]').filter({ hasText: "アプリの更新" }).screenshot({ path: info.outputPath("restart-update-ready.png") })
+    writeFileSync(path.join(root, 'fail-install'), '')
+    await restart.click()
+    await expect(page.getByText("更新できませんでした。接続を確認して「更新を確認」で再試行してください。", { exact: true })).toBeVisible()
+    expect(existsSync(path.join(root, 'install-request.json'))).toBe(false)
+    unlinkSync(path.join(root, 'fail-install'))
+    await check.click()
+    await expect(restart).toBeEnabled()
+    const closed = app.waitForEvent('close')
+    await restart.click()
+    await closed
+    expect(JSON.parse(readFileSync(path.join(root, 'install-request.json'), 'utf8'))).toMatchObject({ isSilent: true, isForceRunAfter: true })
+    await expect.poll(() => existsSync(path.join(root, 'restarted.json'))).toBe(true)
+    const reopened = JSON.parse(readFileSync(path.join(root, 'restarted.json'), 'utf8'))
+    for (const [key, value] of Object.entries(original)) expect(reopened.data[key]).toEqual(value)
+    app = undefined
   } finally {
     await info.attach("Electron更新ログ", { body: updateLogs, contentType: "text/plain" })
     await app?.close()

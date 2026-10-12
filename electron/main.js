@@ -14,6 +14,7 @@ let store;
 
 let mainWindow;
 let tray = null;
+let timerRunning = false;
 
 // Tray メニュー・ツールチップで使う文言。レンダラーから言語と残り時間を受け取って更新する。
 // 初期値（レンダラー接続前）は日本語。
@@ -187,7 +188,8 @@ app.whenReady().then(() => {
             publicRepository: 'DoFer0910/Pomodoro-Fusion',
             installedVersion: app.getVersion(), updater,
         }) : undefined;
-    createUpdateService({ app, ipcMain, getWindow: () => mainWindow, ...policy, logger: updateLogger, updater, prepare });
+    createUpdateService({ app, ipcMain, getWindow: () => mainWindow, ...policy, logger: updateLogger, updater, prepare,
+        canRestart: () => !timerRunning });
 
     app.on('activate', function () {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
@@ -244,6 +246,7 @@ ipcMain.handle('codex:scan-sessions', async () =>
 ipcMain.handle('progress:update', async (event, payload) => {
     if (!payload) return;
     const { progress, isRunning, labels } = payload;
+    timerRunning = Boolean(isRunning);
 
     if (mainWindow && !mainWindow.isDestroyed()) {
         if (isRunning && typeof progress === 'number') {
