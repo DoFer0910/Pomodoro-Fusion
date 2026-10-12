@@ -30,7 +30,22 @@ Windowsの配布版は起動30秒後と1時間ごとにGitHub Releasesの新版�
 
 yield-proの `build:pro` は `yieldUpdateEdition: pro` を配布物に設定する。販売開始時にはProインストーラ・blockmap・latest.ymlを置く**Pro専用の公開配布リポジトリ**を用意し、`YIELD_PRO_UPDATE_REPOSITORY=owner/repo` を指定してビルドする。build.publishとアプリの更新先メタデータは同じ指定から作る。専用の更新先がないPro版は設定に未設定を表示し、無料版への更新を行わない。Pro版の自動ビルド・公開パイプラインはprivate側で管理する。
 
-本人用 `build:dev-pro` は `yieldUpdateEdition: dev-pro` とし、公開版への自動更新を無効化する。誰でもProになる本人用インストーラを公開Releaseに載せないためである。開発起動、未パッケージのElectron、Windows以外も更新しない。未対応OSは設定に説明を表示する。
+本人用 `build:dev-pro` は `yieldUpdateEdition: dev-pro`、`yieldUpdatePrivate: true`、privateの更新先を配布物へ設定する。既定の更新先は `DoFer0910/yield-pro`。誰でもProになる本人用インストーラを公開Releaseに載せない。開発起動、未パッケージのElectron、Windows以外は更新しない。
+
+## 本人用Proの非公開更新
+
+本人用ProのPCではGitHub CLI（gh）がインストールされ、`gh auth login` でprivateのyield-proへアクセスできる本人のアカウントにログインしていることが必要。公開版の利用者へGitHubログインを要求するものではない。
+
+1. 本人用アプリが公開リポジトリの最新安定版とprivateの本人用Releaseを確認する。
+2. 公開版の方が新しい場合、PCの既存のgh認証でprivateの `dev-pro-release.yml` を実行する。同じ版の進行中ビルドがあれば依頼を重ねない。追加の共有トークンやActions secretは用意しない。
+3. privateのワークフローは非公開リポジトリであることと、入力が公開済みの最新安定版タグであることを確認する。そのタグの本体を取得し、CI後に本人用Pro実装へ差し替え、更新メタデータと一緒にprivateのReleaseへ載せる。失敗した下書きは再実行で完成させ、公開済みの同版は上書きしない。
+4. アプリは「本人用Proの新版を準備中」と表示し、5分ごとに完成を確認する。完成するとPCのgh認証を使ってprivateのメタデータ・インストーラを取得し、通常のアプリ終了時に適用する。
+
+認証情報を取得するのはElectronのメインプロセスだけで、更新通信中のメモリに保持する。レンダラー・ストレージ・配布物・リポジトリ・Actions secretへ書かない。ghの例外に含まれるstdoutはログへ渡さず、更新ログでもGitHub認証情報を伏せる。未ログイン、権限不足、ビルドや取得の失敗は設定画面で再試行できる。
+
+PCの既存CLIログインからworkflow実行を依頼するため、本人のアカウントにはprivate側のActionsを実行できる権限が必要。本人用はアプリが起動しているとき、または次の起動後にビルドを依頼する。無料配布版はPCの稼働に関係なくmasterのCI後に作成される。
+
+初回は両PRを反映し、publicの最初の安定版ができてから `gh workflow run dev-pro-release.yml --repo DoFer0910/yield-pro -f public_tag=vX.Y.Z` で本人用Releaseを一度作る。そのprivate Releaseの本人用インストーラで現在と同じ場所へ上書きする。以後の更新依頼・取得はアプリが行う。
 
 ## 検証の範囲
 
@@ -38,4 +53,6 @@ yield-proの `build:pro` は `yieldUpdateEdition: pro` を配布物に設定す�
 
 E2Eでは実際のElectron・preload・IPC・electron-updaterを使い、ローカルHTTP配布先から更新メタデータと検証用ファイルを取得する。503からの再試行、SHA不一致の拒否、正しいファイルのダウンロード、タイマー継続、保存データの保持を確認する。外部APIの単純なモックではなく、実際の更新ライブラリのHTTP・SHA検証経路を通す。PrismではNSISダウンロードとハッシュ検証を代替できないため、ローカルファイル配信を使う。
 
-テスト環境でインストーラを実行しないよう、テスト専用のシェルだけ終了時適用を止める。実インストーラの生成・同梱更新設定を別途確認し、GitHubでの正式公開とインストール済み版への適用はPRマージ後の初回導入で確認する。
+本人用フローはPrismのOpenAPI契約と実gh CLIで、公開リポジトリの拒否・ビルド依頼・重複抑止・完成待ちを検証する。実electron-updaterのPrivateGitHubProviderで認証付きメタデータ・インストーラ取得とSHA検証を通し、保存した鍵が変わらないことを確認する。テストでは実際のGitHub認証を使わず、ダミー認証とローカル配信だけを使う。
+
+テスト環境でインストーラを実行しないよう、テスト専用のシェルだけ終了時適用を止める。実インストーラの生成・同梱更新設定を別途確認し、GitHubでの正式公開とインストール済み版への適用は初回導入で確認する。
